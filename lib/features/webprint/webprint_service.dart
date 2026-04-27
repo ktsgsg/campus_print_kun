@@ -45,6 +45,7 @@ class PrintFormat {
 class WebPrint {
   final CcMoonSession session;
   String ipAddress = '';
+  String userId = '';
 
   WebPrint(this.session);
 
@@ -53,12 +54,14 @@ class WebPrint {
   String _api(String path) => '$_userBase$path';
 
   /// プリントトップ取得 → 認証 → IP 取得までを一度に実行。
+  /// 完了後 [userId] と [ipAddress] が確定し、[pdfPrint] で自動適用される。
   Future<void> initialize({
     required String username,
     required String password,
   }) async {
     await getPrintservicePage();
     await authenticUser(username: username, password: password);
+    userId = username;
     await getOwnIpAddress();
   }
 
@@ -185,14 +188,20 @@ class WebPrint {
     return ipAddress;
   }
 
-  /// PDF を multipart で投入。Python の固定 boundary はやめ dio に
-  /// ランダム生成させる。
+  /// PDF を multipart で投入。
+  /// `user_id` と `ip` は [initialize] 後に確定した値を自動で注入する。
+  /// [format] で個別の印刷設定を上書きできる。
   Future<int> pdfPrint({
     required String filename,
     required String printDataPath,
     PrintFormat? format,
   }) async {
-    final fmt = (format ?? PrintFormat()).toMap();
+    // initialize() で確定した userId / ipAddress を注入
+    final resolved = (format ?? PrintFormat()).copyWith({
+      if (userId.isNotEmpty) 'user_id': userId,
+      if (ipAddress.isNotEmpty) 'ip': ipAddress,
+    });
+    final fmt = resolved.toMap();
     final formData = FormData();
     formData.files.add(MapEntry(
       'data',

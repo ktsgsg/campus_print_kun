@@ -1,6 +1,7 @@
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
+import 'package:flutter/widgets.dart';
 import 'package:html/parser.dart' as html_parser;
 
 import 'auth_token.dart';
@@ -37,19 +38,20 @@ Future<CcMoonSession> connectCcmoon({
   CookieJar? cookieJar,
 }) async {
   final jar = cookieJar ?? CookieJar();
-  final dio = Dio(BaseOptions(
-    followRedirects: false,
-    validateStatus: (s) => s != null && s < 400,
-    responseType: ResponseType.plain,
-  ));
+  final dio = Dio(
+    BaseOptions(
+      followRedirects: false,
+      validateStatus: (s) => s != null && s < 400,
+      responseType: ResponseType.plain,
+    ),
+  );
   dio.interceptors.add(CookieManager(jar));
 
   // 1. token 取得 → iPlanetDirectoryPro cookie をセット
   final token = await getToken(username, password);
-  await jar.saveFromResponse(
-    Uri.parse('https://slbsso.meijo-u.ac.jp/'),
-    [Cookie('iPlanetDirectoryPro', token)],
-  );
+  await jar.saveFromResponse(Uri.parse('https://slbsso.meijo-u.ac.jp/'), [
+    Cookie('iPlanetDirectoryPro', token),
+  ]);
 
   // 2. SSO 開始 → 302 を手動追跡
   final res0 = await dio.get(_ssoStartUrl);
@@ -118,7 +120,8 @@ Future<CcMoonSession> connectCcmoon({
   ]);
 
   // 6. baseurl を Webtop HTML から抽出 (取れなければ静的デフォルト)
-  final baseurl = (webtopHtml != null ? _extractBaseurl(webtopHtml) : null) ??
+  final baseurl =
+      (webtopHtml != null ? _extractBaseurl(webtopHtml) : null) ??
       _defaultBaseurl;
 
   return CcMoonSession(dio: dio, cookieJar: jar, baseurl: baseurl);

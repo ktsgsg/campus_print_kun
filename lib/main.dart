@@ -1,121 +1,206 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import 'features/ccmoon/ccmoon.dart';
+import 'features/webprint/webprint.dart';
+
 void main() {
-  runApp(const MyApp());
+  runApp(const CampusPrintKunApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class CampusPrintKunApp extends StatelessWidget {
+  const CampusPrintKunApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Campus Print Kun',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const PrintTestPage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class PrintTestPage extends StatefulWidget {
+  const PrintTestPage({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<PrintTestPage> createState() => _PrintTestPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _PrintTestPageState extends State<PrintTestPage> {
+  final _userController = TextEditingController();
+  final _passController = TextEditingController();
+  File? _selectedFile;
+  bool _running = false;
+  final List<String> _logs = [];
 
-  void _incrementCounter() {
+  @override
+  void dispose() {
+    _userController.dispose();
+    _passController.dispose();
+    super.dispose();
+  }
+
+  void _log(String message) {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _logs.add(
+        '${DateTime.now().toIso8601String().substring(11, 19)}  $message',
+      );
     });
+  }
+
+  Future<void> _pickPdf() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+      withData: false,
+    );
+    if (result == null || result.files.single.path == null) return;
+    setState(() {
+      _selectedFile = File(result.files.single.path!);
+    });
+    _log('PDF を選択: ${_selectedFile!.path}');
+  }
+
+  Future<void> _startPrint() async {
+    final user = _userController.text.trim();
+    final pass = _passController.text;
+    final file = _selectedFile;
+    if (user.isEmpty || pass.isEmpty) {
+      _log('ユーザID / パスワードを入力してください');
+      return;
+    }
+    if (file == null) {
+      _log('PDF を選択してください');
+      return;
+    }
+    setState(() => _running = true);
+    try {
+      _log('CC Moon に接続中...');
+      final session = await connectCcmoon(username: user, password: pass);
+      _log('セッション確立: baseurl=${session.baseurl}');
+
+      final wp = WebPrint(session);
+      _log('Web プリント認証中...');
+      await wp.initialize(username: user, password: pass);
+      _log('認証 OK / 自端末IP=${wp.ipAddress}');
+
+      _log('PDF を送信中...');
+      final status = await wp.pdfPrint(
+        filename: file.uri.pathSegments.last,
+        printDataPath: file.path,
+      );
+      _log('印刷ジョブ送信完了 status=$status');
+    } catch (e, st) {
+      _log('エラー: $e');
+      debugPrintStack(stackTrace: st, label: 'print error');
+    } finally {
+      if (mounted) setState(() => _running = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+    final fileName = _selectedFile?.uri.pathSegments.last;
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: const Text('Campus Print Kun (test)'),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: _userController,
+                decoration: const InputDecoration(
+                  labelText: 'ユーザID',
+                  border: OutlineInputBorder(),
+                ),
+                enabled: !_running,
+                autocorrect: false,
+                autofillHints: const [AutofillHints.username],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _passController,
+                decoration: const InputDecoration(
+                  labelText: 'パスワード',
+                  border: OutlineInputBorder(),
+                ),
+                obscureText: true,
+                enabled: !_running,
+                autofillHints: const [AutofillHints.password],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      fileName ?? 'PDF が未選択',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: fileName == null ? Colors.grey : null,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.tonalIcon(
+                    onPressed: _running ? null : _pickPdf,
+                    icon: const Icon(Icons.picture_as_pdf),
+                    label: const Text('PDFを選択'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: _running ? null : _startPrint,
+                icon: _running
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.print),
+                label: Text(_running ? '実行中...' : '印刷開始'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Divider(),
+              const Text('ログ', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: ListView.builder(
+                    itemCount: _logs.length,
+                    itemBuilder: (context, i) => Text(
+                      _logs[i],
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
       ),
     );
   }
