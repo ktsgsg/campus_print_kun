@@ -1,9 +1,12 @@
 import 'package:flutter/cupertino.dart';
 
+import 'features/sharing/shared_pdf_service.dart';
 import 'ui/app_colors.dart';
 import 'ui/print_test_page.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  SharedPdfService.init();
   runApp(const CampusPrintKunApp());
 }
 

@@ -38,24 +38,43 @@ The SSO flow is the core complexity of this app. It mirrors the Python original 
 2. **`connect_ccmoon.dart`** — Drives the full SSO → SAML → CC Moon session chain, returns `CcMoonSession`
 3. **`raw_http.dart`** — `rawHttpsGet()`: sends HTTPS GET via `SecureSocket` without going through `Uri.parse`. **This is critical**: Dart's `Uri.parse` normalizes percent-encoded unreserved chars (`%2E`→`.`, `%2D`→`-`), which changes the SAML query byte sequence and breaks signature verification. This function must be used for the SAML redirect GET.
 4. **`f5_st.dart`** — Rewrites the F5 BIG-IP `F5_ST` cookie to a long-lived version
-5. **`debug_proxy.dart`** — `applyDebugProxy(dio)`: applies `HTTP_PROXY_HOST` dart-define to a dio instance for mitmproxy capture
+5. **`debug_proxy.dart`** — `applyDebugProxy(dio)`: applies `HTTP_PROXY_HOST` dart-define to a dio instance for mitmproxy capture. Called on both `ssoClient` and the post-auth `dio`.
+
+### SSO step-by-step (`connect_ccmoon.dart`)
+
+```
+getToken()           → iPlanetDirectoryPro token
+GET sso.jsp          → 302 → loc0  (slbsso domain)
+GET loc0             → 302 → loc1  (slbsso domain)
+GET ccmoon+loc1      → 302, body has <a href="...saml...">  (ccmoon domain)
+rawHttpsGet(samlUrl) → 200 with HTML form containing SAMLResponse
+POST SAMLResponse    → 302 → webtop
+GET webtop           → extract baseurl JS var
+genF5St()            → rewrite F5_ST to long-lived
+migrate cookies → CookieJar → new dio+CookieManager for WebPrint API
+```
 
 ### Cookie domain isolation (critical invariant)
 
-Two separate cookie stores are maintained during SSO:
-- `slbssoCookies`: sent **only** to `slbsso.meijo-u.ac.jp`
-- `manualCookies`: ccmoon cookies + iPlanetDirectoryPro, migrated to `CookieJar` post-auth for `dio`
+Two separate cookie stores are maintained during SSO — this mirrors how Python's `requests.Session` handles domain scoping:
 
-Never send ccmoon cookies to slbsso or vice versa — this matches the Python `requests.Session` domain isolation and is required for the flow to succeed.
+- `slbssoCookies`: sent **only** to `slbsso.meijo-u.ac.jp` (holds `iPlanetDirectoryPro` + SSO response cookies)
+- `manualCookies`: sent **only** to `ccmoon2.meijo-u.ac.jp` (holds `iPlanetDirectoryPro` + ccmoon cookies, migrated to `CookieJar` post-auth)
+
+`iPlanetDirectoryPro` is seeded into **both** stores at the start. Cookies set by ccmoon responses (`manualCookies`) are never sent back to slbsso and vice versa.
+
+### SAML URL invariant
+
+The `Location` header from the ccmoon 302 (step 3 above) is passed **verbatim** to `rawHttpsGet`. Any Dart `Uri.parse`/`dio` path would normalize percent-encoded unreserved characters, altering the query byte sequence that the SAML signature was computed over and causing verification to fail. `rawHttpsGet` writes the raw URL directly into the HTTP/1.1 request line via `SecureSocket`.
 
 ### WebPrint (`lib/features/webprint/`)
 
 `webprint_service.dart` contains `WebPrint` and `PrintFormat`:
 - `WebPrint.initialize()` — fetches print page, authenticates with RSA-encrypted credentials, resolves client IP
-- `WebPrint.pdfPrint()` — multipart POST of PDF + format JSON
+- `WebPrint.pdfPrint()` — multipart POST of PDF + format JSON; auto-injects `user_id` and `ip` captured during `initialize()`
 - `encripter.dart` — RSA PKCS#1 v1.5 encryption (JSEncrypt-compatible, **not** OAEP) via `pointycastle`
 
-The `baseurl` (e.g. `/f5-w-68747470733a2f2f.../`) is extracted from Webtop HTML at login time; it embeds the hex-encoded upstream hostname used by the F5 BIG-IP reverse proxy.
+The `baseurl` (e.g. `/f5-w-68747470733a2f2f.../`) is extracted from Webtop HTML at login time; it encodes the upstream hostname in hex for the F5 BIG-IP reverse proxy. Falls back to `_defaultBaseurl` constant if extraction fails.
 
 ### UI (`lib/ui/`)
 
@@ -89,4 +108,4 @@ To capture raw HTTP with mitmproxy:
 3. `flutter run --dart-define=HTTP_PROXY_HOST=127.0.0.1:8080`
 4. Check the Raw tab in mitmweb to verify `%23` vs `#` in SAML query params
 
-The `rawHttpsGet` function supports this via HTTP CONNECT tunneling.
+`rawHttpsGet` supports proxy via HTTP CONNECT tunneling when `HTTP_PROXY_HOST` is set.
