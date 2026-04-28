@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 
+import 'debug_proxy.dart';
+
 const _authUrl = 'https://slbsso.meijo-u.ac.jp/opensso/json/authenticate';
 
 Future<String> getToken(
@@ -10,6 +12,7 @@ Future<String> getToken(
   Duration retryInterval = const Duration(milliseconds: 500),
 }) async {
   final client = dio ?? Dio();
+  if (dio == null) applyDebugProxy(client);
   final headers = {'Content-Type': 'application/json'};
 
   try {
