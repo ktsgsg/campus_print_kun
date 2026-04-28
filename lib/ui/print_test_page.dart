@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 
+import '../features/auth/credential_store.dart';
 import '../features/webprint/webprint.dart';
 import 'app_colors.dart';
 import 'print_progress_page.dart';
@@ -18,9 +19,24 @@ class PrintTestPage extends StatefulWidget {
 class _PrintTestPageState extends State<PrintTestPage> {
   final _userController = TextEditingController();
   final _passController = TextEditingController();
+  final _credentialStore = CredentialStore();
   File? _selectedFile;
   bool _running = false;
   PrintFormat _printFormat = PrintFormat();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final credentials = await _credentialStore.load();
+    if (credentials != null && mounted) {
+      _userController.text = credentials.username;
+      _passController.text = credentials.password;
+    }
+  }
 
   @override
   void dispose() {
@@ -89,6 +105,7 @@ class _PrintTestPageState extends State<PrintTestPage> {
       await _showAlert('入力エラー', 'PDF を選択してください');
       return;
     }
+    await _credentialStore.save(Credentials(username: user, password: pass));
     setState(() => _running = true);
     await Navigator.of(context).push(
       CupertinoPageRoute(
