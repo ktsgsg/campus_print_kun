@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 
 import '../features/auth/credential_store.dart';
+import '../features/sharing/shared_pdf_service.dart';
 import '../features/webprint/webprint.dart';
 import 'app_colors.dart';
 import 'print_progress_page.dart';
@@ -23,11 +25,21 @@ class _PrintTestPageState extends State<PrintTestPage> {
   File? _selectedFile;
   bool _running = false;
   PrintFormat _printFormat = PrintFormat();
+  StreamSubscription<String>? _sharingSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadSavedCredentials();
+    SharedPdfService.getInitialSharedPdf().then((path) {
+      if (path != null) _applySharedPdf(path);
+    });
+    _sharingSubscription = SharedPdfService.onSharedPdf.listen(_applySharedPdf);
+  }
+
+  void _applySharedPdf(String path) {
+    if (!mounted) return;
+    setState(() => _selectedFile = File(path));
   }
 
   Future<void> _loadSavedCredentials() async {
@@ -40,6 +52,7 @@ class _PrintTestPageState extends State<PrintTestPage> {
 
   @override
   void dispose() {
+    _sharingSubscription?.cancel();
     _userController.dispose();
     _passController.dispose();
     super.dispose();
