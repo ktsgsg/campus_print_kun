@@ -25,7 +25,7 @@ class PrintFormat {
   final Map<String, String> _data;
 
   PrintFormat([Map<String, String>? overrides])
-      : _data = {...defaults, if (overrides != null) ...overrides};
+    : _data = {...defaults, if (overrides != null) ...overrides};
 
   Map<String, String> toMap() => Map.unmodifiable(_data);
 
@@ -67,11 +67,14 @@ class WebPrint {
 
   /// プリント画面の HTML を取得して返す (ファイルには書き出さない)。
   Future<String?> getPrintservicePage({String? url}) async {
-    final target = url ?? '${WebtopConst.host}${session.baseurl}user/';
+    final target =
+        url ??
+        'https://ccmoon2.meijo-u.ac.jp/f5-w-<REDACTED_BACKEND_URL_HEX>\$\$/user/';
+    print(target);
     final res = await session.dio.get<String>(
       target,
       options: Options(
-        followRedirects: false,
+        followRedirects: true,
         validateStatus: (s) => s == 200,
         responseType: ResponseType.plain,
       ),
@@ -81,14 +84,15 @@ class WebPrint {
 
   /// 認証用 RSA 公開鍵を取得し、PEM 形式に整形して返す。
   Future<String> getPubKey() async {
-    final res = await session.dio.get<dynamic>(
-      _api('api/auth/getpubkey'),
+    final res = await session.dio.get<String>(
+      'https://ccmoon2.meijo-u.ac.jp/f5-w-<REDACTED_BACKEND_URL_HEX>\$\$/user/f5-h-\$\$/api/auth/getpubkey',
       options: Options(responseType: ResponseType.json),
     );
     if (res.statusCode != 200) {
       throw Exception('公開鍵の取得に失敗しました (status=${res.statusCode})');
     }
-    final raw = ((res.data as Map)['pubkey'] as String).trim();
+    //pubkey: "-----BEGINで届くので
+    final raw = (jsonDecode(res.data!) as Map)['pubkey'] as String;
     return _normalizePem(raw);
   }
 
@@ -129,7 +133,7 @@ class WebPrint {
   }) async {
     final body = await encryptUserinfo(username: username, password: password);
     final res = await session.dio.post<dynamic>(
-      _api('api/auth/authuserenc'),
+      "https://ccmoon2.meijo-u.ac.jp/f5-w-<REDACTED_BACKEND_URL_HEX>\$\$/user/f5-h-\$\$/api/auth/authuserenc",
       data: body,
       options: Options(
         contentType: Headers.jsonContentType,
@@ -151,7 +155,7 @@ class WebPrint {
   /// 自動書き出しは行わない。必要なら呼び出し側で保存する)。
   Future<Map<String, dynamic>> getSettings() async {
     final res = await session.dio.get<dynamic>(
-      _api('api/system/settings'),
+      'https://ccmoon2.meijo-u.ac.jp/f5-w-<REDACTED_BACKEND_URL_HEX>\$\$/user/f5-h-\$\$/api/system/settings',
       options: Options(responseType: ResponseType.json),
     );
     if (res.statusCode != 200) {
@@ -166,7 +170,7 @@ class WebPrint {
     int type = 1,
   }) async {
     final res = await session.dio.get<dynamic>(
-      _api('api/user/users/$userId?type=$type'),
+      'https://ccmoon2.meijo-u.ac.jp/f5-w-<REDACTED_BACKEND_URL_HEX>\$\$/user/f5-h-\$\$/api/user/users/$userId?type=$type',
       options: Options(responseType: ResponseType.json),
     );
     if (res.statusCode != 200) {
@@ -178,7 +182,7 @@ class WebPrint {
   /// 自端末の IP を取得して [ipAddress] に保持。
   Future<String> getOwnIpAddress() async {
     final res = await session.dio.get<dynamic>(
-      _api('api/system/notice/ownipaddress'),
+      'https://ccmoon2.meijo-u.ac.jp/f5-w-<REDACTED_BACKEND_URL_HEX>\$\$/user/f5-h-\$\$/api/system/notice/ownipaddress',
       options: Options(responseType: ResponseType.json),
     );
     if (res.statusCode != 200) {
@@ -203,29 +207,30 @@ class WebPrint {
     });
     final fmt = resolved.toMap();
     final formData = FormData();
-    formData.files.add(MapEntry(
-      'data',
-      MultipartFile.fromString(
-        jsonEncode(fmt),
-        filename: 'blob',
-        contentType: MediaType('application', 'json'),
+    formData.files.add(
+      MapEntry(
+        'data',
+        MultipartFile.fromString(
+          jsonEncode(fmt),
+          filename: 'blob',
+          contentType: MediaType('application', 'json'),
+        ),
       ),
-    ));
-    formData.files.add(MapEntry(
-      'files',
-      await MultipartFile.fromFile(
-        printDataPath,
-        filename: filename,
-        contentType: MediaType('application', 'pdf'),
+    );
+    formData.files.add(
+      MapEntry(
+        'files',
+        await MultipartFile.fromFile(
+          printDataPath,
+          filename: filename,
+          contentType: MediaType('application', 'pdf'),
+        ),
       ),
-    ));
+    );
     final res = await session.dio.post<dynamic>(
-      _api('api/spool01/files/webprint'),
+      'https://ccmoon2.meijo-u.ac.jp/f5-w-<REDACTED_BACKEND_URL_HEX>\$\$/user/f5-h-\$\$/api/spool01/files/webprint',
       data: formData,
-      options: Options(
-        followRedirects: false,
-        validateStatus: (_) => true,
-      ),
+      options: Options(followRedirects: false, validateStatus: (_) => true),
     );
     return res.statusCode ?? -1;
   }

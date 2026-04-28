@@ -85,7 +85,6 @@ class _PrintTestPageState extends State<PrintTestPage> {
       _log('CC Moon に接続中...');
       final session = await connectCcmoon(username: user, password: pass);
       _log('セッション確立: baseurl=${session.baseurl}');
-
       final wp = WebPrint(session);
       _log('Web プリント認証中...');
       await wp.initialize(username: user, password: pass);
