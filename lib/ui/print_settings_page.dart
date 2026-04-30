@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
 import '../features/webprint/webprint.dart';
+import '../l10n/app_localizations.dart';
 
 class PrintSettingsPage extends StatefulWidget {
   const PrintSettingsPage({super.key, required this.format});
@@ -109,54 +110,55 @@ class _PrintSettingsPageState extends State<PrintSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
-        middle: const Text('印刷設定'),
+        middle: Text(l10n.printSettingsTitle),
         leading: CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: _resetToDefaults,
-          child: const Text('規定値に戻す'),
+          child: Text(l10n.resetDefaults),
         ),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: _apply,
-          child: const Text('適用'),
+          child: Text(l10n.apply),
         ),
       ),
       child: SafeArea(
         child: ListView(
           children: [
             CupertinoFormSection.insetGrouped(
-              header: const Text('プリント設定'),
-              footer: const Text('queue_id や color_mode_type などは固定値です。'),
+              header: Text(l10n.settingsSectionHeader),
+              footer: Text(l10n.settingsSectionFooter),
               children: [
                 _buildSegmentedRow(
-                  title: '用紙サイズ',
+                  title: l10n.paperSize,
                   key: 'paper_type',
                   options: const {'06': 'A4', '05': 'A3'},
                 ),
                 _buildSegmentedRow(
-                  title: '両面印刷',
+                  title: l10n.duplexPrinting,
                   key: 'duplex_type',
-                  options: const {'1': 'なし', '2': 'あり'},
+                  options: {'1': l10n.duplexNo, '2': l10n.duplexYes},
                 ),
                 _buildSegmentedRow(
-                  title: '印刷向き',
+                  title: l10n.printOrientation,
                   key: 'print_orientation',
-                  options: const {'1': '長辺', '2': '短辺'},
+                  options: {'1': l10n.longEdge, '2': l10n.shortEdge},
                 ),
                 _buildSegmentedRow(
-                  title: 'ページ順',
+                  title: l10n.pageSort,
                   key: 'page_sort',
-                  options: const {'1': '横', '2': '縦'},
+                  options: {'1': l10n.horizontalLayout, '2': l10n.verticalLayout},
                 ),
                 _buildNumberRow(
-                  title: '部数',
+                  title: l10n.copies,
                   key: 'copies',
                   controller: _copiesController,
                 ),
                 _buildSegmentedRow(
-                  title: '割付',
+                  title: l10n.numberUp,
                   key: 'number_up',
                   options: const {'1': '1', '2': '2', '3': '3', '4': '4'},
                 ),

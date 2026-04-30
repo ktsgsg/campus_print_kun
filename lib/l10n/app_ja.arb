@@ -1,0 +1,53 @@
+{
+  "@@locale": "ja",
+
+  "appTitle": "キャンパスプリントくん",
+
+  "userIdLabel": "ユーザID",
+  "passwordLabel": "パスワード",
+  "pdfNotSelected": "PDF が未選択",
+  "selectPdfButton": "PDFを選択",
+  "printSettingsButton": "印刷設定",
+  "running": "実行中...",
+  "startPrint": "印刷開始",
+
+  "ok": "OK",
+  "inputError": "入力エラー",
+  "credentialRequired": "ユーザID / パスワードを入力してください",
+  "pdfRequired": "PDF を選択してください",
+
+  "duplexOn": "両面",
+  "duplexOff": "片面",
+  "summaryFormat": "{paper}・{duplex}・{copies}部・{numberUp}up",
+
+  "printSettingsTitle": "印刷設定",
+  "resetDefaults": "規定値に戻す",
+  "apply": "適用",
+  "settingsSectionHeader": "プリント設定",
+  "settingsSectionFooter": "queue_id や color_mode_type などは固定値です。",
+  "paperSize": "用紙サイズ",
+  "duplexPrinting": "両面印刷",
+  "duplexNo": "なし",
+  "duplexYes": "あり",
+  "printOrientation": "印刷向き",
+  "longEdge": "長辺",
+  "shortEdge": "短辺",
+  "pageSort": "ページ順",
+  "horizontalLayout": "横",
+  "verticalLayout": "縦",
+  "copies": "部数",
+  "numberUp": "割付",
+
+  "stepConnect": "CC Moon に接続",
+  "stepAuth": "Webプリント認証",
+  "stepSendPdf": "PDF 送信",
+  "stepDone": "完了",
+  "failed": "失敗",
+  "success": "成功！",
+  "printJobSent": "印刷ジョブを送信しました",
+  "statusLabel": "ステータス: {status}",
+  "printing": "印刷中...",
+  "pleaseWait": "このままお待ちください",
+  "printStatus": "印刷状況",
+  "close": "閉じる"
+}

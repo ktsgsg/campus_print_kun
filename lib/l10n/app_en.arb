@@ -1,0 +1,69 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Campus Print Kun",
+  "@appTitle": {
+    "description": "Application title shown in the navigation bar"
+  },
+
+  "userIdLabel": "User ID",
+  "passwordLabel": "Password",
+  "pdfNotSelected": "No PDF selected",
+  "selectPdfButton": "Select PDF",
+  "printSettingsButton": "Print settings",
+  "running": "Running...",
+  "startPrint": "Start printing",
+
+  "ok": "OK",
+  "inputError": "Input error",
+  "credentialRequired": "Please enter your user ID and password",
+  "pdfRequired": "Please select a PDF",
+
+  "duplexOn": "Duplex",
+  "duplexOff": "Simplex",
+  "summaryFormat": "{paper} ・ {duplex} ・ {copies} copies ・ {numberUp}-up",
+  "@summaryFormat": {
+    "placeholders": {
+      "paper": {"type": "String"},
+      "duplex": {"type": "String"},
+      "copies": {"type": "String"},
+      "numberUp": {"type": "String"}
+    }
+  },
+
+  "printSettingsTitle": "Print settings",
+  "resetDefaults": "Reset",
+  "apply": "Apply",
+  "settingsSectionHeader": "Print options",
+  "settingsSectionFooter": "queue_id, color_mode_type, etc. are fixed values.",
+  "paperSize": "Paper size",
+  "duplexPrinting": "Duplex",
+  "duplexNo": "Off",
+  "duplexYes": "On",
+  "printOrientation": "Orientation",
+  "longEdge": "Long edge",
+  "shortEdge": "Short edge",
+  "pageSort": "Page sort",
+  "horizontalLayout": "Horizontal",
+  "verticalLayout": "Vertical",
+  "copies": "Copies",
+  "numberUp": "N-up",
+
+  "stepConnect": "Connect to CC Moon",
+  "stepAuth": "WebPrint authentication",
+  "stepSendPdf": "Send PDF",
+  "stepDone": "Complete",
+  "failed": "Failed",
+  "success": "Success!",
+  "printJobSent": "Print job sent",
+  "statusLabel": "status: {status}",
+  "@statusLabel": {
+    "placeholders": {
+      "status": {"type": "String"}
+    }
+  },
+  "printing": "Printing...",
+  "pleaseWait": "Please wait",
+  "printStatus": "Print status",
+  "close": "Close"
+}

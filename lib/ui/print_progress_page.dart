@@ -4,15 +4,31 @@ import 'package:flutter/cupertino.dart';
 
 import '../features/ccmoon/ccmoon.dart';
 import '../features/webprint/webprint.dart';
+import '../l10n/app_localizations.dart';
 import 'app_colors.dart';
 
 enum _StepStatus { pending, running, success, failure }
 
-class _ProgressStep {
-  _ProgressStep(this.title, this.status);
+enum _StepKind { connect, auth, sendPdf, done }
 
-  final String title;
+class _ProgressStep {
+  _ProgressStep(this.kind, this.status);
+
+  final _StepKind kind;
   _StepStatus status;
+
+  String title(AppLocalizations l10n) {
+    switch (kind) {
+      case _StepKind.connect:
+        return l10n.stepConnect;
+      case _StepKind.auth:
+        return l10n.stepAuth;
+      case _StepKind.sendPdf:
+        return l10n.stepSendPdf;
+      case _StepKind.done:
+        return l10n.stepDone;
+    }
+  }
 }
 
 class PrintProgressPage extends StatefulWidget {
@@ -35,10 +51,10 @@ class PrintProgressPage extends StatefulWidget {
 
 class _PrintProgressPageState extends State<PrintProgressPage> {
   final List<_ProgressStep> _steps = [
-    _ProgressStep('CC Moon に接続', _StepStatus.pending),
-    _ProgressStep('Webプリント認証', _StepStatus.pending),
-    _ProgressStep('PDF 送信', _StepStatus.pending),
-    _ProgressStep('完了', _StepStatus.pending),
+    _ProgressStep(_StepKind.connect, _StepStatus.pending),
+    _ProgressStep(_StepKind.auth, _StepStatus.pending),
+    _ProgressStep(_StepKind.sendPdf, _StepStatus.pending),
+    _ProgressStep(_StepKind.done, _StepStatus.pending),
   ];
 
   int _currentStepIndex = 0;
@@ -95,7 +111,7 @@ class _PrintProgressPageState extends State<PrintProgressPage> {
     }
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(AppLocalizations l10n) {
     if (_isFailed) {
       return Column(
         children: [
@@ -105,9 +121,9 @@ class _PrintProgressPageState extends State<PrintProgressPage> {
             color: CupertinoColors.systemRed,
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Failed',
-            style: TextStyle(
+          Text(
+            l10n.failed,
+            style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
               color: CupertinoColors.label,
@@ -133,48 +149,51 @@ class _PrintProgressPageState extends State<PrintProgressPage> {
             color: CupertinoColors.systemGreen,
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Success!',
-            style: TextStyle(
+          Text(
+            l10n.success,
+            style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
               color: CupertinoColors.label,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            '印刷ジョブを送信しました',
-            style: TextStyle(color: AppColors.secondaryText),
+          Text(
+            l10n.printJobSent,
+            style: const TextStyle(color: AppColors.secondaryText),
           ),
           if (_jobStatus != null) ...[
             const SizedBox(height: 6),
             Text(
-              'status: $_jobStatus',
+              l10n.statusLabel(_jobStatus!),
               style: const TextStyle(color: AppColors.secondaryText),
             ),
           ],
         ],
       );
     }
-    return const Column(
+    return Column(
       children: [
-        CupertinoActivityIndicator(radius: 16),
-        SizedBox(height: 8),
+        const CupertinoActivityIndicator(radius: 16),
+        const SizedBox(height: 8),
         Text(
-          '印刷中...',
-          style: TextStyle(
+          l10n.printing,
+          style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w600,
             color: CupertinoColors.label,
           ),
         ),
-        SizedBox(height: 6),
-        Text('このままお待ちください', style: TextStyle(color: AppColors.secondaryText)),
+        const SizedBox(height: 6),
+        Text(
+          l10n.pleaseWait,
+          style: const TextStyle(color: AppColors.secondaryText),
+        ),
       ],
     );
   }
 
-  Widget _buildStepRow(_ProgressStep step) {
+  Widget _buildStepRow(AppLocalizations l10n, _ProgressStep step) {
     final labelColor = CupertinoDynamicColor.resolve(
       CupertinoColors.label,
       context,
@@ -231,7 +250,7 @@ class _PrintProgressPageState extends State<PrintProgressPage> {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              step.title,
+              step.title(l10n),
               style: TextStyle(fontSize: 16, color: textColor),
             ),
           ),
@@ -242,8 +261,9 @@ class _PrintProgressPageState extends State<PrintProgressPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(middle: Text('印刷状況')),
+      navigationBar: CupertinoNavigationBar(middle: Text(l10n.printStatus)),
       child: SafeArea(
         child: DefaultTextStyle(
           style: const TextStyle(color: CupertinoColors.label),
@@ -252,7 +272,7 @@ class _PrintProgressPageState extends State<PrintProgressPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildHeader(),
+                _buildHeader(l10n),
                 const SizedBox(height: 16),
                 Container(height: 1, color: CupertinoColors.separator),
                 const SizedBox(height: 12),
@@ -260,14 +280,14 @@ class _PrintProgressPageState extends State<PrintProgressPage> {
                   child: ListView.builder(
                     itemCount: _steps.length,
                     itemBuilder: (context, index) =>
-                        _buildStepRow(_steps[index]),
+                        _buildStepRow(l10n, _steps[index]),
                   ),
                 ),
                 if (_isDone || _isFailed) ...[
                   const SizedBox(height: 12),
                   CupertinoButton.filled(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('閉じる'),
+                    child: Text(l10n.close),
                   ),
                 ],
               ],
