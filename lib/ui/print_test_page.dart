@@ -7,6 +7,7 @@ import 'package:flutter/cupertino.dart';
 import '../features/auth/credential_store.dart';
 import '../features/sharing/shared_pdf_service.dart';
 import '../features/webprint/webprint.dart';
+import '../l10n/app_localizations.dart';
 import 'app_colors.dart';
 import 'print_progress_page.dart';
 import 'print_settings_page.dart';
@@ -86,13 +87,13 @@ class _PrintTestPageState extends State<PrintTestPage> {
     });
   }
 
-  String _formatSummary(PrintFormat format) {
+  String _formatSummary(AppLocalizations l10n, PrintFormat format) {
     final map = format.toMap();
     final paper = map['paper_type'] == '05' ? 'A3' : 'A4';
-    final duplex = map['duplex_type'] == '2' ? '両面' : '片面';
+    final duplex = map['duplex_type'] == '2' ? l10n.duplexOn : l10n.duplexOff;
     final copies = map['copies'] ?? '1';
     final numberUp = map['number_up'] ?? '1';
-    return '$paper・$duplex・${copies}部・${numberUp}up';
+    return l10n.summaryFormat(paper, duplex, copies, numberUp);
   }
 
   Future<void> _openSettings() async {
@@ -107,15 +108,16 @@ class _PrintTestPageState extends State<PrintTestPage> {
   }
 
   Future<void> _startPrint() async {
+    final l10n = AppLocalizations.of(context)!;
     final user = _userController.text.trim();
     final pass = _passController.text;
     final file = _selectedFile;
     if (user.isEmpty || pass.isEmpty) {
-      await _showAlert('入力エラー', 'ユーザID / パスワードを入力してください');
+      await _showAlert(l10n.inputError, l10n.credentialRequired);
       return;
     }
     if (file == null) {
-      await _showAlert('入力エラー', 'PDF を選択してください');
+      await _showAlert(l10n.inputError, l10n.pdfRequired);
       return;
     }
     await _credentialStore.save(Credentials(username: user, password: pass));
@@ -135,9 +137,10 @@ class _PrintTestPageState extends State<PrintTestPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final fileName = _selectedFile?.uri.pathSegments.last;
     return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(middle: Text('キャンパスプリントくん')),
+      navigationBar: CupertinoNavigationBar(middle: Text(l10n.appTitle)),
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -146,7 +149,7 @@ class _PrintTestPageState extends State<PrintTestPage> {
             children: [
               CupertinoTextField(
                 controller: _userController,
-                placeholder: 'ユーザID',
+                placeholder: l10n.userIdLabel,
                 enabled: !_running,
                 autocorrect: false,
                 autofillHints: const [AutofillHints.username],
@@ -167,7 +170,7 @@ class _PrintTestPageState extends State<PrintTestPage> {
               const SizedBox(height: 12),
               CupertinoTextField(
                 controller: _passController,
-                placeholder: 'パスワード',
+                placeholder: l10n.passwordLabel,
                 enabled: !_running,
                 obscureText: true,
                 autofillHints: const [AutofillHints.password],
@@ -190,7 +193,7 @@ class _PrintTestPageState extends State<PrintTestPage> {
                 children: [
                   Expanded(
                     child: Text(
-                      fileName ?? 'PDF が未選択',
+                      fileName ?? l10n.pdfNotSelected,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: fileName == null
@@ -203,11 +206,11 @@ class _PrintTestPageState extends State<PrintTestPage> {
                   CupertinoButton(
                     onPressed: _running ? null : _pickPdf,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(CupertinoIcons.doc_text),
-                        SizedBox(width: 6),
-                        Text('PDFを選択'),
+                        const Icon(CupertinoIcons.doc_text),
+                        const SizedBox(width: 6),
+                        Text(l10n.selectPdfButton),
                       ],
                     ),
                   ),
@@ -218,7 +221,7 @@ class _PrintTestPageState extends State<PrintTestPage> {
                 children: [
                   Expanded(
                     child: Text(
-                      _formatSummary(_printFormat),
+                      _formatSummary(l10n, _printFormat),
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(color: AppColors.secondaryText),
                     ),
@@ -227,11 +230,11 @@ class _PrintTestPageState extends State<PrintTestPage> {
                   CupertinoButton(
                     onPressed: _running ? null : _openSettings,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(CupertinoIcons.gear),
-                        SizedBox(width: 6),
-                        Text('印刷設定'),
+                        const Icon(CupertinoIcons.gear),
+                        const SizedBox(width: 6),
+                        Text(l10n.printSettingsButton),
                       ],
                     ),
                   ),
@@ -251,7 +254,7 @@ class _PrintTestPageState extends State<PrintTestPage> {
                       const Icon(CupertinoIcons.printer),
                       const SizedBox(width: 8),
                     ],
-                    Text(_running ? '実行中...' : '印刷開始'),
+                    Text(_running ? l10n.running : l10n.startPrint),
                   ],
                 ),
               ),
