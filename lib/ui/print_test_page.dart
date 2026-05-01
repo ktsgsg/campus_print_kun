@@ -9,6 +9,7 @@ import '../features/sharing/shared_pdf_service.dart';
 import '../features/webprint/webprint.dart';
 import '../l10n/app_localizations.dart';
 import 'app_colors.dart';
+import 'job_history_page.dart';
 import 'print_progress_page.dart';
 import 'print_settings_page.dart';
 
@@ -140,7 +141,21 @@ class _PrintTestPageState extends State<PrintTestPage> {
     final l10n = AppLocalizations.of(context)!;
     final fileName = _selectedFile?.uri.pathSegments.last;
     return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(middle: Text(l10n.appTitle)),
+      navigationBar: CupertinoNavigationBar(
+        middle: Text(l10n.appTitle),
+        trailing: CupertinoButton(
+          padding: EdgeInsets.zero,
+          onPressed: () => Navigator.of(context).push(
+            CupertinoPageRoute(
+              builder: (_) => JobHistoryPage(
+                user: _userController.text.trim(),
+                pass: _passController.text,
+              ),
+            ),
+          ),
+          child: const Icon(CupertinoIcons.list_bullet),
+        ),
+      ),
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
