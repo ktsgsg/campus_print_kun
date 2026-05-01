@@ -26,4 +26,9 @@ class AppColors {
         color: Color(0xFF8E8E93),
         darkColor: Color(0xFF8E8E93),
       );
+  static const CupertinoDynamicColor labelText =
+      CupertinoDynamicColor.withBrightness(
+        color: Color(0xFF000000),
+        darkColor: Color(0xFFFFFFFF),
+      );
 }
