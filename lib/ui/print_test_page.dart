@@ -198,7 +198,7 @@ class _PrintTestPageState extends State<PrintTestPage> {
                       style: TextStyle(
                         color: fileName == null
                             ? AppColors.secondaryText
-                            : CupertinoColors.label,
+                            : AppColors.primary,
                       ),
                     ),
                   ),
