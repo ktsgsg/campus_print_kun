@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.OpenableColumns
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -68,9 +69,10 @@ class MainActivity : FlutterActivity() {
 
     private fun copyUriToCache(uri: Uri): String? {
         return try {
-            val fileName = uri.lastPathSegment
-                ?.substringAfterLast('/')
-                ?.takeIf { it.isNotBlank() }
+            val fileName = queryDisplayName(uri)
+                ?: uri.lastPathSegment
+                    ?.substringAfterLast('/')
+                    ?.takeIf { it.isNotBlank() && it.endsWith(".pdf", ignoreCase = true) }
                 ?: "shared.pdf"
             val dest = File(cacheDir, fileName)
             contentResolver.openInputStream(uri)?.use { input ->
@@ -82,5 +84,17 @@ class MainActivity : FlutterActivity() {
         } catch (e: IOException) {
             null
         }
+    }
+
+    private fun queryDisplayName(uri: Uri): String? {
+        if (uri.scheme != "content") return null
+        return contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+            ?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (idx >= 0) cursor.getString(idx) else null
+                } else null
+            }
+            ?.takeIf { it.isNotBlank() }
     }
 }
