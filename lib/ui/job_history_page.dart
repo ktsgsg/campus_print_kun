@@ -7,8 +7,6 @@ import '../features/ccmoon/ccmoon.dart';
 import '../features/webprint/webprint_service.dart';
 import 'app_colors.dart';
 
-enum _ApiTab { histories, tab2, tab3 }
-
 // ─── モデル ────────────────────────────────────────────────
 class PrintJob {
   const PrintJob({
@@ -40,24 +38,96 @@ class PrintJob {
       );
 }
 
-// ─── ページ ────────────────────────────────────────────────
-class JobHistoryPage extends StatefulWidget {
+class PrintStatusJob {
+  const PrintStatusJob({
+    required this.jobSc,
+    required this.statusName,
+    required this.documentName,
+    required this.receivedDatetime,
+    required this.duplexName,
+    required this.colorModeName,
+    required this.copies,
+    required this.queueName,
+    required this.paperSizeName,
+    required this.papersColor,
+    required this.papersMono,
+  });
+
+  final String jobSc;
+  final String statusName;
+  final String documentName;
+  final String receivedDatetime;
+  final String duplexName;
+  final String colorModeName;
+  final int copies;
+  final String queueName;
+  final String paperSizeName;
+  final int papersColor;
+  final int papersMono;
+
+  factory PrintStatusJob.fromJson(Map<String, dynamic> j) => PrintStatusJob(
+        jobSc: (j['job_sc'] as String?) ?? '',
+        statusName: (j['print_job_status_name'] as String?) ?? '',
+        documentName: (j['document_name'] as String?) ?? '',
+        receivedDatetime: (j['job_received_datetime'] as String?) ?? '',
+        duplexName: (j['pre_duplex_type_name'] as String?) ?? '',
+        colorModeName: (j['pre_color_mode_type_name'] as String?) ?? '',
+        copies: (j['pre_output_copies'] as int?) ?? 1,
+        queueName: (j['print_queue_name'] as String?) ?? '',
+        paperSizeName: (j['pre_paper_size_name'] as String?) ?? '',
+        papersColor: (j['pre_output_papers_per_copies_color'] as int?) ?? 0,
+        papersMono: (j['pre_output_papers_per_copies_mono'] as int?) ?? 0,
+      );
+}
+
+// ─── エントリーポイント ────────────────────────────────────
+class JobHistoryPage extends StatelessWidget {
   const JobHistoryPage({super.key, required this.user, required this.pass});
 
   final String user;
   final String pass;
 
   @override
-  State<JobHistoryPage> createState() => _JobHistoryPageState();
+  Widget build(BuildContext context) {
+    return CupertinoTabScaffold(
+      tabBar: CupertinoTabBar(
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.clock),
+            label: '履歴',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.printer),
+            label: '印刷状況',
+          ),
+        ],
+      ),
+      tabBuilder: (context, index) {
+        return CupertinoTabView(
+          builder: (context) => switch (index) {
+            0 => _JobHistoriesPage(user: user, pass: pass),
+            _ => _PrintStatusPage(user: user, pass: pass),
+          },
+        );
+      },
+    );
+  }
 }
 
-class _JobHistoryPageState extends State<JobHistoryPage> {
-  _ApiTab _selectedTab = _ApiTab.histories;
+// ─── 履歴タブ ──────────────────────────────────────────────
+class _JobHistoriesPage extends StatefulWidget {
+  const _JobHistoriesPage({required this.user, required this.pass});
+  final String user;
+  final String pass;
 
+  @override
+  State<_JobHistoriesPage> createState() => _JobHistoriesPageState();
+}
+
+class _JobHistoriesPageState extends State<_JobHistoriesPage> {
   late DateTime _startDate;
   late DateTime _endDate;
 
-  // 履歴API固有フィルタ
   bool _normal = true;
   bool _error = true;
   bool _cancel = true;
@@ -79,7 +149,8 @@ class _JobHistoryPageState extends State<JobHistoryPage> {
   String _toYYYYMM(DateTime d) =>
       '${d.year}${d.month.toString().padLeft(2, '0')}';
 
-  String _toLabel(DateTime d) => '${d.year}年${d.month.toString().padLeft(2, '0')}月';
+  String _toLabel(DateTime d) =>
+      '${d.year}年${d.month.toString().padLeft(2, '0')}月';
 
   Future<void> _pickMonth({required bool isStart}) async {
     final initial = isStart ? _startDate : _endDate;
@@ -124,11 +195,6 @@ class _JobHistoryPageState extends State<JobHistoryPage> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   Future<void> _search() async {
@@ -182,75 +248,29 @@ class _JobHistoryPageState extends State<JobHistoryPage> {
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(middle: Text('プリント管理')),
+      navigationBar: const CupertinoNavigationBar(middle: Text('履歴')),
       child: SafeArea(
-        child: Column(
-          children: [
-            _buildSegmentedControl(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildCommonFilters(),
-                    const SizedBox(height: 16),
-                    _buildApiFilters(),
-                    const SizedBox(height: 16),
-                    CupertinoButton.filled(
-                      onPressed: _loading ? null : _search,
-                      child: _loading
-                          ? const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                CupertinoActivityIndicator(
-                                  color: CupertinoColors.white,
-                                ),
-                                SizedBox(width: 8),
-                                Text('検索中...'),
-                              ],
-                            )
-                          : const Text('検索'),
-                    ),
-                    const SizedBox(height: 24),
-                    _buildResults(),
-                  ],
-                ),
-              ),
-            ),
-          ],
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildPeriodFilter(),
+              const SizedBox(height: 16),
+              _buildStatusFilter(),
+              const SizedBox(height: 16),
+              _buildSearchButton(),
+              const SizedBox(height: 24),
+              _buildResults(),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSegmentedControl() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: CupertinoSlidingSegmentedControl<_ApiTab>(
-        groupValue: _selectedTab,
-        onValueChanged: (tab) {
-          if (tab != null) setState(() => _selectedTab = tab);
-        },
-        children: const {
-          _ApiTab.histories: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4),
-            child: Text('履歴'),
-          ),
-          _ApiTab.tab2: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4),
-            child: Text('API 2'),
-          ),
-          _ApiTab.tab3: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4),
-            child: Text('API 3'),
-          ),
-        },
-      ),
-    );
-  }
-
-  Widget _buildCommonFilters() {
+  Widget _buildPeriodFilter() {
+    final deco = _fieldDecoration();
     return _FilterSection(
       title: '期間',
       child: Row(
@@ -260,7 +280,7 @@ class _JobHistoryPageState extends State<JobHistoryPage> {
               label: '開始月',
               child: _MonthPickerField(
                 label: _toLabel(_startDate),
-                decoration: _fieldDecoration(),
+                decoration: deco,
                 onTap: () => _pickMonth(isStart: true),
               ),
             ),
@@ -271,7 +291,7 @@ class _JobHistoryPageState extends State<JobHistoryPage> {
               label: '終了月',
               child: _MonthPickerField(
                 label: _toLabel(_endDate),
-                decoration: _fieldDecoration(),
+                decoration: deco,
                 onTap: () => _pickMonth(isStart: false),
               ),
             ),
@@ -281,114 +301,57 @@ class _JobHistoryPageState extends State<JobHistoryPage> {
     );
   }
 
-  Widget _buildApiFilters() {
-    return switch (_selectedTab) {
-      _ApiTab.histories => _buildHistoriesFilters(),
-      _ApiTab.tab2 => _FilterSection(
-          title: 'フィルタ',
-          child: const Center(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('API 2 のフィルタをここに追加'),
-            ),
-          ),
-        ),
-      _ApiTab.tab3 => _FilterSection(
-          title: 'フィルタ',
-          child: const Center(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('API 3 のフィルタをここに追加'),
-            ),
-          ),
-        ),
-    };
-  }
-
-  Widget _buildHistoriesFilters() {
+  Widget _buildStatusFilter() {
     return _FilterSection(
       title: '表示種別',
       child: Column(
         children: [
-          _CheckRow(
-            items: [
-              _CheckItem('正常', _normal, (v) => setState(() => _normal = v)),
-              _CheckItem('エラー', _error, (v) => setState(() => _error = v)),
-              _CheckItem('キャンセル', _cancel, (v) => setState(() => _cancel = v)),
-            ],
-          ),
+          _CheckRow(items: [
+            _CheckItem('正常', _normal, (v) => setState(() => _normal = v)),
+            _CheckItem('エラー', _error, (v) => setState(() => _error = v)),
+            _CheckItem('キャンセル', _cancel, (v) => setState(() => _cancel = v)),
+          ]),
           const SizedBox(height: 8),
-          _CheckRow(
-            items: [
-              _CheckItem('システム削除(bat)', _deleteBat,
-                  (v) => setState(() => _deleteBat = v)),
-              _CheckItem('システム削除(job)', _deleteJob,
-                  (v) => setState(() => _deleteJob = v)),
-            ],
-          ),
+          _CheckRow(items: [
+            _CheckItem('システム削除(bat)', _deleteBat,
+                (v) => setState(() => _deleteBat = v)),
+            _CheckItem('システム削除(job)', _deleteJob,
+                (v) => setState(() => _deleteJob = v)),
+          ]),
         ],
       ),
     );
   }
 
+  Widget _buildSearchButton() {
+    return CupertinoButton.filled(
+      onPressed: _loading ? null : _search,
+      child: _loading
+          ? const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CupertinoActivityIndicator(color: CupertinoColors.white),
+                SizedBox(width: 8),
+                Text('検索中...'),
+              ],
+            )
+          : const Text('検索'),
+    );
+  }
+
   Widget _buildResults() {
     if (_errorMessage != null) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.fieldFill,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.fieldBorder),
-        ),
-        child: Text(
-          _errorMessage!,
-          style: const TextStyle(color: CupertinoColors.systemRed),
-        ),
-      );
+      return _errorBox(_errorMessage!);
     }
-
     final jobs = _results;
-    if (jobs == null) {
-      return Container(
-        height: 120,
-        decoration: BoxDecoration(
-          color: AppColors.fieldFill,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.fieldBorder),
-        ),
-        child: const Center(
-          child: Text(
-            '検索結果がここに表示されます',
-            style: TextStyle(color: AppColors.secondaryText),
-          ),
-        ),
-      );
-    }
-
-    if (jobs.isEmpty) {
-      return Container(
-        height: 120,
-        decoration: BoxDecoration(
-          color: AppColors.fieldFill,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.fieldBorder),
-        ),
-        child: const Center(
-          child: Text(
-            '該当するジョブはありません',
-            style: TextStyle(color: AppColors.secondaryText),
-          ),
-        ),
-      );
-    }
-
+    if (jobs == null) return _emptyPlaceholder('検索結果がここに表示されます');
+    if (jobs.isEmpty) return _emptyPlaceholder('該当するジョブはありません');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '${jobs.length} 件',
-          style: const TextStyle(fontSize: 13, color: AppColors.secondaryText),
-        ),
+        Text('${jobs.length} 件',
+            style: const TextStyle(
+                fontSize: 13, color: AppColors.secondaryText)),
         const SizedBox(height: 8),
         ...jobs.map((job) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -404,6 +367,181 @@ class _JobHistoryPageState extends State<JobHistoryPage> {
         border: Border.all(color: AppColors.fieldBorder),
       );
 }
+
+// ─── 印刷状況タブ ──────────────────────────────────────────
+class _PrintStatusPage extends StatefulWidget {
+  const _PrintStatusPage({required this.user, required this.pass});
+  final String user;
+  final String pass;
+
+  @override
+  State<_PrintStatusPage> createState() => _PrintStatusPageState();
+}
+
+class _PrintStatusPageState extends State<_PrintStatusPage> {
+  bool _accepting = true;
+  bool _orderWait = true;
+  bool _outputWait = true;
+  bool _outputting = true;
+  bool _end = true;
+  bool _acceptingWeb = true;
+
+  bool _loading = false;
+  List<PrintStatusJob>? _results;
+  String? _errorMessage;
+
+  Future<void> _search() async {
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+      _results = null;
+    });
+    try {
+      final session = await connectCcmoon(
+        username: widget.user,
+        password: widget.pass,
+      );
+      final wp = WebPrint(session);
+      await wp.initialize(username: widget.user, password: widget.pass);
+
+      final params = {
+        'user_id': widget.user,
+        'accepting': _accepting.toString(),
+        'order_wait': _orderWait.toString(),
+        'output_wait': _outputWait.toString(),
+        'outputting': _outputting.toString(),
+        'end': _end.toString(),
+        'accepting_web': _acceptingWeb.toString(),
+      };
+
+      const url =
+          'https://ccmoon2.meijo-u.ac.jp/f5-w-<REDACTED_BACKEND_URL_HEX>\$\$/user/f5-h-\$\$/user/f5-h-\$\$/api/job/prints/search';
+
+      final res = await session.dio.get<String>(
+        url,
+        queryParameters: params,
+        options: Options(responseType: ResponseType.plain),
+      );
+
+      final body = jsonDecode(res.data!) as Map<String, dynamic>;
+      final array = body['print_job_array'] as List<dynamic>;
+      final jobs = array
+          .map((e) => PrintStatusJob.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+      if (mounted) setState(() => _results = jobs);
+    } catch (e) {
+      if (mounted) setState(() => _errorMessage = e.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoPageScaffold(
+      navigationBar: const CupertinoNavigationBar(middle: Text('印刷状況')),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildStatusFilter(),
+              const SizedBox(height: 16),
+              _buildSearchButton(),
+              const SizedBox(height: 24),
+              _buildResults(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusFilter() {
+    return _FilterSection(
+      title: '表示種別',
+      child: Column(
+        children: [
+          _CheckRow(items: [
+            _CheckItem('受付中', _accepting, (v) => setState(() => _accepting = v)),
+            _CheckItem('指示待ち', _orderWait, (v) => setState(() => _orderWait = v)),
+            _CheckItem('出力待ち', _outputWait, (v) => setState(() => _outputWait = v)),
+          ]),
+          const SizedBox(height: 8),
+          _CheckRow(items: [
+            _CheckItem('出力中', _outputting, (v) => setState(() => _outputting = v)),
+            _CheckItem('出力完了', _end, (v) => setState(() => _end = v)),
+            _CheckItem('受付中(Web)', _acceptingWeb,
+                (v) => setState(() => _acceptingWeb = v)),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchButton() {
+    return CupertinoButton.filled(
+      onPressed: _loading ? null : _search,
+      child: _loading
+          ? const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CupertinoActivityIndicator(color: CupertinoColors.white),
+                SizedBox(width: 8),
+                Text('検索中...'),
+              ],
+            )
+          : const Text('検索'),
+    );
+  }
+
+  Widget _buildResults() {
+    if (_errorMessage != null) return _errorBox(_errorMessage!);
+    final jobs = _results;
+    if (jobs == null) return _emptyPlaceholder('検索結果がここに表示されます');
+    if (jobs.isEmpty) return _emptyPlaceholder('該当するジョブはありません');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('${jobs.length} 件',
+            style: const TextStyle(
+                fontSize: 13, color: AppColors.secondaryText)),
+        const SizedBox(height: 8),
+        ...jobs.map((job) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _PrintStatusCard(job: job),
+            )),
+      ],
+    );
+  }
+}
+
+// ─── 共通ユーティリティ ────────────────────────────────────
+Widget _emptyPlaceholder(String message) => Container(
+      height: 120,
+      decoration: BoxDecoration(
+        color: AppColors.fieldFill,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.fieldBorder),
+      ),
+      child: Center(
+        child: Text(message,
+            style: const TextStyle(color: AppColors.secondaryText)),
+      ),
+    );
+
+Widget _errorBox(String message) => Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.fieldFill,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.fieldBorder),
+      ),
+      child: Text(message,
+          style: const TextStyle(color: CupertinoColors.systemRed)),
+    );
 
 // ─── ジョブカード ──────────────────────────────────────────
 class _JobCard extends StatelessWidget {
@@ -468,6 +606,80 @@ class _JobCard extends StatelessWidget {
   }
 }
 
+// ─── 印刷状況カード ────────────────────────────────────────
+class _PrintStatusCard extends StatelessWidget {
+  const _PrintStatusCard({required this.job});
+  final PrintStatusJob job;
+
+  @override
+  Widget build(BuildContext context) {
+    final totalPages = job.papersColor + job.papersMono;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.fieldFill,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.fieldBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  job.documentName,
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w600),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              _StatusBadge(label: job.statusName),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              if (job.paperSizeName.isNotEmpty) ...[
+                _Tag(job.paperSizeName),
+                const SizedBox(width: 6),
+              ],
+              if (job.duplexName.isNotEmpty) ...[
+                _Tag(job.duplexName),
+                const SizedBox(width: 6),
+              ],
+              if (job.colorModeName.isNotEmpty) ...[
+                _Tag(job.colorModeName),
+                const SizedBox(width: 6),
+              ],
+              _Tag('${job.copies}部'),
+              if (totalPages > 0) ...[
+                const SizedBox(width: 6),
+                _Tag('${totalPages}枚'),
+              ],
+              const Spacer(),
+              Text(
+                job.receivedDatetime,
+                style: const TextStyle(
+                    fontSize: 12, color: AppColors.secondaryText),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            job.queueName.isNotEmpty
+                ? '${job.jobSc}  •  ${job.queueName}'
+                : job.jobSc,
+            style: const TextStyle(
+                fontSize: 11, color: AppColors.secondaryText),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _StatusBadge extends StatelessWidget {
   const _StatusBadge({required this.label});
   final String label;
@@ -476,7 +688,11 @@ class _StatusBadge extends StatelessWidget {
     if (label.contains('エラー')) return CupertinoColors.systemRed;
     if (label.contains('キャンセル')) return CupertinoColors.systemOrange;
     if (label.contains('削除')) return AppColors.secondaryText;
-    if (label.contains('正常')) return CupertinoColors.systemGreen;
+    if (label.contains('正常') || label.contains('出力完了'))
+      return CupertinoColors.systemGreen;
+    if (label.contains('出力中')) return CupertinoColors.systemYellow;
+    if (label.contains('出力待ち') || label.contains('指示待ち'))
+      return CupertinoColors.systemOrange;
     return AppColors.primary;
   }
 
@@ -488,10 +704,7 @@ class _StatusBadge extends StatelessWidget {
         color: _color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(
-        label,
-        style: TextStyle(fontSize: 11, color: _color),
-      ),
+      child: Text(label, style: TextStyle(fontSize: 11, color: _color)),
     );
   }
 }
@@ -582,10 +795,7 @@ class _MonthPickerField extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(fontSize: 15),
-              ),
+              child: Text(label, style: const TextStyle(fontSize: 15)),
             ),
             const Icon(
               CupertinoIcons.chevron_down,
