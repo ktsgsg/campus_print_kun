@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this app does
 
-**Campus Print Kun** is an iOS/macOS Flutter app that lets Meijo University students submit print jobs to the university's CC Moon print service from their own device. It automates a multi-step SSO → WebPrint flow that normally requires a campus browser session.
+**Campus Print Kun** is a Flutter app (iOS/Android) that lets Meijo University students submit print jobs to the university's CC Moon print service from their own device. It automates a multi-step SSO → WebPrint flow that normally requires a campus browser session. PDFs can be picked from the file system or shared directly from other apps via the OS share sheet.
 
 ## Commands
 
@@ -78,12 +78,22 @@ The `baseurl` (e.g. `/f5-w-68747470733a2f2f.../`) is extracted from Webtop HTML 
 
 ### UI (`lib/ui/`)
 
-Pure Cupertino widgets, no Material. Three pages:
-- `PrintTestPage` — credential entry, PDF picker, print settings summary, launch button; auto-saves/loads credentials via `CredentialStore`
+Pure Cupertino widgets, no Material. Four pages:
+- `PrintTestPage` — credential entry, PDF picker, print settings summary, launch button; auto-saves/loads credentials via `CredentialStore`; navigation bar button opens `JobHistoryPage`
 - `PrintSettingsPage` — paper size, duplex, orientation, copies, n-up
 - `PrintProgressPage` — step-by-step status display driven by the async `_run()` method
+- `JobHistoryPage` — `CupertinoTabScaffold` with two bottom tabs:
+  - **履歴** (`_JobHistoriesPage`) — searches `api/job/histories/search` with date range + status filters; month picker via `CupertinoDatePicker` in a modal popup
+  - **印刷状況** (`_PrintStatusPage`) — searches `api/job/prints/search` with job-status filters (受付中/指示待ち/出力待ち/出力中/出力完了/受付中(Web))
 
 `AppColors` — all colors defined as `CupertinoDynamicColor` for dark mode support.
+
+### PDF sharing (`lib/features/sharing/`)
+
+`SharedPdfService` bridges the OS share sheet to Flutter via `MethodChannel('com.example.campusPrintKun/sharing')`:
+- **iOS** — `ios/Runner/SceneDelegate.swift` (`FlutterSceneDelegate` subclass) catches `scene(_:openURLContexts:)` and `willConnectTo`. The engine may not be initialized yet when `willConnectTo` fires, so the URL is buffered in `pendingPdfPath` and flushed in `sceneDidBecomeActive` once the channel is set up. `Info.plist` must declare `CFBundleDocumentTypes` for `com.adobe.pdf` with `LSHandlerRank=Alternate`.
+- **Android** — `android/…/MainActivity.kt` handles `ACTION_VIEW` and `ACTION_SEND` intents, copies the PDF to the app's cache dir via `ContentResolver`, and sends the path over the channel. `queryDisplayName()` resolves the real filename from `OpenableColumns.DISPLAY_NAME` before falling back to `lastPathSegment`.
+- **Dart** — `SharedPdfService.init()` (called in `main()` before `runApp`) registers the method call handler. `PrintTestPage` calls `getInitialSharedPdf()` in `initState` (cold-start pull) and subscribes to `onSharedPdf` (warm-start push).
 
 ### Credential storage (`lib/features/auth/`)
 
@@ -99,6 +109,7 @@ Pure Cupertino widgets, no Material. Three pages:
 | `file_picker` | PDF file selection |
 | `pointycastle` + `basic_utils` | RSA encryption for WebPrint auth |
 | `html` | SAML form parsing from HTML response |
+| `intl` + `flutter_localizations` | i18n (ja/en); ARB files in `lib/l10n/` |
 
 ## Debugging SAML
 
