@@ -239,4 +239,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get previewNoPdf => 'Select a PDF to see the preview';
+
+  @override
+  String get previewBindLong => 'Long edge';
+
+  @override
+  String get previewBindShort => 'Short edge';
 }

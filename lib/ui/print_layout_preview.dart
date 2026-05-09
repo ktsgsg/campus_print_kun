@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/cupertino.dart';
 
 import '../features/webprint/webprint.dart';
@@ -20,6 +22,8 @@ class PrintLayoutPreview extends StatefulWidget {
   @override
   State<PrintLayoutPreview> createState() => _PrintLayoutPreviewState();
 }
+
+enum _Edge { left, top, right, bottom }
 
 class _PrintLayoutPreviewState extends State<PrintLayoutPreview> {
   final _controller = PageController();
@@ -68,8 +72,13 @@ class _PrintLayoutPreviewState extends State<PrintLayoutPreview> {
                           totalPages: widget.pageCount,
                           paperLabel: paperLabel,
                           sideLabel: l10n.previewFront,
-                          showBinding: true,
-                          bindingLongEdge: longEdgeBinding,
+                          bindingEdge: longEdgeBinding
+                              ? _Edge.left
+                              : _Edge.top,
+                          rotateContent180: false,
+                          bindingLabel: longEdgeBinding
+                              ? l10n.previewBindLong
+                              : l10n.previewBindShort,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -81,8 +90,13 @@ class _PrintLayoutPreviewState extends State<PrintLayoutPreview> {
                           totalPages: widget.pageCount,
                           paperLabel: paperLabel,
                           sideLabel: l10n.previewBack,
-                          showBinding: true,
-                          bindingLongEdge: longEdgeBinding,
+                          bindingEdge: longEdgeBinding
+                              ? _Edge.right
+                              : _Edge.bottom,
+                          rotateContent180: !longEdgeBinding,
+                          bindingLabel: longEdgeBinding
+                              ? l10n.previewBindLong
+                              : l10n.previewBindShort,
                         ),
                       ),
                     ],
@@ -96,8 +110,11 @@ class _PrintLayoutPreviewState extends State<PrintLayoutPreview> {
                 totalPages: widget.pageCount,
                 paperLabel: paperLabel,
                 sideLabel: null,
-                showBinding: false,
-                bindingLongEdge: longEdgeBinding,
+                bindingEdge: longEdgeBinding ? _Edge.left : _Edge.top,
+                rotateContent180: false,
+                bindingLabel: longEdgeBinding
+                    ? l10n.previewBindLong
+                    : l10n.previewBindShort,
               );
             },
           ),
@@ -126,8 +143,9 @@ class _PaperSide extends StatelessWidget {
     required this.totalPages,
     required this.paperLabel,
     required this.sideLabel,
-    required this.showBinding,
-    required this.bindingLongEdge,
+    required this.bindingEdge,
+    required this.rotateContent180,
+    required this.bindingLabel,
   });
 
   final int firstPage;
@@ -136,8 +154,9 @@ class _PaperSide extends StatelessWidget {
   final int totalPages;
   final String paperLabel;
   final String? sideLabel;
-  final bool showBinding;
-  final bool bindingLongEdge;
+  final _Edge bindingEdge;
+  final bool rotateContent180;
+  final String bindingLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -154,8 +173,9 @@ class _PaperSide extends StatelessWidget {
                 horizontal: horizontal,
                 totalPages: totalPages,
                 paperLabel: paperLabel,
-                showBinding: showBinding,
-                bindingLongEdge: bindingLongEdge,
+                bindingEdge: bindingEdge,
+                rotateContent180: rotateContent180,
+                bindingLabel: bindingLabel,
               ),
             ),
           ),
@@ -185,8 +205,9 @@ class _Paper extends StatelessWidget {
     required this.horizontal,
     required this.totalPages,
     required this.paperLabel,
-    required this.showBinding,
-    required this.bindingLongEdge,
+    required this.bindingEdge,
+    required this.rotateContent180,
+    required this.bindingLabel,
   });
 
   final int firstPage;
@@ -194,8 +215,9 @@ class _Paper extends StatelessWidget {
   final bool horizontal;
   final int totalPages;
   final String paperLabel;
-  final bool showBinding;
-  final bool bindingLongEdge;
+  final _Edge bindingEdge;
+  final bool rotateContent180;
+  final String bindingLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -203,7 +225,7 @@ class _Paper extends StatelessWidget {
     final bindingColor = CupertinoDynamicColor.resolve(
       AppColors.primary,
       context,
-    ).withValues(alpha: 0.35);
+    ).withValues(alpha: 0.4);
     final (rows, cols) = _gridDims(nup);
 
     final cells = List<int?>.filled(rows * cols, null);
@@ -221,6 +243,31 @@ class _Paper extends StatelessWidget {
       cells[r * cols + c] = pageNum;
     }
 
+    final grid = Padding(
+      padding: const EdgeInsets.all(6),
+      child: Column(
+        children: [
+          for (int r = 0; r < rows; r++)
+            Expanded(
+              child: Row(
+                children: [
+                  for (int c = 0; c < cols; c++)
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(3),
+                        child: _PageCell(
+                          pageNumber: cells[r * cols + c],
+                          border: border,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+
     return Container(
       decoration: BoxDecoration(
         color: CupertinoColors.white,
@@ -235,40 +282,17 @@ class _Paper extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          if (showBinding)
-            Positioned(
-              left: 0,
-              top: 0,
-              right: bindingLongEdge ? null : 0,
-              bottom: bindingLongEdge ? 0 : null,
-              child: Container(
-                width: bindingLongEdge ? 6 : null,
-                height: bindingLongEdge ? null : 6,
-                color: bindingColor,
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.all(6),
-            child: Column(
-              children: [
-                for (int r = 0; r < rows; r++)
-                  Expanded(
-                    child: Row(
-                      children: [
-                        for (int c = 0; c < cols; c++)
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.all(3),
-                              child: _PageCell(
-                                pageNumber: cells[r * cols + c],
-                                border: border,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-              ],
+          if (rotateContent180)
+            Transform.rotate(angle: math.pi, child: grid)
+          else
+            grid,
+          _BindingStripe(
+            edge: bindingEdge,
+            color: bindingColor,
+            label: bindingLabel,
+            labelColor: CupertinoDynamicColor.resolve(
+              AppColors.primary,
+              context,
             ),
           ),
           Positioned(
@@ -298,6 +322,52 @@ class _Paper extends StatelessWidget {
       default:
         return (1, 1);
     }
+  }
+}
+
+class _BindingStripe extends StatelessWidget {
+  const _BindingStripe({
+    required this.edge,
+    required this.color,
+    required this.label,
+    required this.labelColor,
+  });
+
+  final _Edge edge;
+  final Color color;
+  final String label;
+  final Color labelColor;
+
+  @override
+  Widget build(BuildContext context) {
+    const thickness = 8.0;
+    final isVertical = edge == _Edge.left || edge == _Edge.right;
+    final stripe = Container(
+      width: isVertical ? thickness : null,
+      height: isVertical ? null : thickness,
+      color: color,
+      alignment: Alignment.center,
+      child: RotatedBox(
+        quarterTurns: isVertical ? 3 : 0,
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 7,
+            fontWeight: FontWeight.w600,
+            color: labelColor,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+    );
+
+    return Positioned(
+      left: edge == _Edge.right ? null : 0,
+      right: edge == _Edge.left ? null : 0,
+      top: edge == _Edge.bottom ? null : 0,
+      bottom: edge == _Edge.top ? null : 0,
+      child: stripe,
+    );
   }
 }
 
