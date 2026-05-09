@@ -82,15 +82,16 @@ class WebPrint {
 
   /// 認証用 RSA 公開鍵を取得し、PEM 形式に整形して返す。
   Future<String> getPubKey() async {
-    final res = await session.dio.get<String>(
+    final res = await session.dio.get<dynamic>(
       _api('api/auth/getpubkey'),
-      options: Options(responseType: ResponseType.json),
+      options: Options(responseType: ResponseType.plain),
     );
     if (res.statusCode != 200) {
       throw Exception('公開鍵の取得に失敗しました (status=${res.statusCode})');
     }
-    //pubkey: "-----BEGINで届くので
-    final raw = (jsonDecode(res.data!) as Map)['pubkey'] as String;
+    final body = res.data;
+    final Map decoded = body is String ? jsonDecode(body) as Map : body as Map;
+    final raw = decoded['pubkey'] as String;
     return _normalizePem(raw);
   }
 
