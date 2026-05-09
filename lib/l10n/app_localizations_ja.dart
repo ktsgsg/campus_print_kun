@@ -148,4 +148,80 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get close => '閉じる';
+
+  @override
+  String get historyTitle => '履歴';
+
+  @override
+  String get filterPeriod => '期間';
+
+  @override
+  String get filterStartMonth => '開始月';
+
+  @override
+  String get filterEndMonth => '終了月';
+
+  @override
+  String get filterStatusType => '表示種別';
+
+  @override
+  String get pickerCancel => 'キャンセル';
+
+  @override
+  String get pickerDone => '完了';
+
+  @override
+  String get statusNormal => '正常';
+
+  @override
+  String get statusError => 'エラー';
+
+  @override
+  String get statusCancelLabel => 'キャンセル';
+
+  @override
+  String get statusDeleteBat => 'システム削除(bat)';
+
+  @override
+  String get statusDeleteJob => 'システム削除(job)';
+
+  @override
+  String get statusAccepting => '受付中';
+
+  @override
+  String get statusOrderWait => '指示待ち';
+
+  @override
+  String get statusOutputWait => '出力待ち';
+
+  @override
+  String get statusOutputting => '出力中';
+
+  @override
+  String get statusEndLabel => '出力完了';
+
+  @override
+  String get statusAcceptingWeb => '受付中(Web)';
+
+  @override
+  String get searchButton => '検索';
+
+  @override
+  String get searchingLabel => '検索中...';
+
+  @override
+  String get searchPlaceholder => '検索結果がここに表示されます';
+
+  @override
+  String get noJobsFound => '該当するジョブはありません';
+
+  @override
+  String resultCount(int count) {
+    return '$count 件';
+  }
+
+  @override
+  String monthYearLabel(int year, int month) {
+    return '$year年$month月';
+  }
 }

@@ -366,6 +366,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close'**
   String get close;
+
+  /// No description provided for @historyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get historyTitle;
+
+  /// No description provided for @filterPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Period'**
+  String get filterPeriod;
+
+  /// No description provided for @filterStartMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Start month'**
+  String get filterStartMonth;
+
+  /// No description provided for @filterEndMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'End month'**
+  String get filterEndMonth;
+
+  /// No description provided for @filterStatusType.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get filterStatusType;
+
+  /// No description provided for @pickerCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get pickerCancel;
+
+  /// No description provided for @pickerDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get pickerDone;
+
+  /// No description provided for @statusNormal.
+  ///
+  /// In en, this message translates to:
+  /// **'Normal'**
+  String get statusNormal;
+
+  /// No description provided for @statusError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get statusError;
+
+  /// No description provided for @statusCancelLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get statusCancelLabel;
+
+  /// No description provided for @statusDeleteBat.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto delete (bat)'**
+  String get statusDeleteBat;
+
+  /// No description provided for @statusDeleteJob.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto delete (job)'**
+  String get statusDeleteJob;
+
+  /// No description provided for @statusAccepting.
+  ///
+  /// In en, this message translates to:
+  /// **'Accepting'**
+  String get statusAccepting;
+
+  /// No description provided for @statusOrderWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting order'**
+  String get statusOrderWait;
+
+  /// No description provided for @statusOutputWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Output wait'**
+  String get statusOutputWait;
+
+  /// No description provided for @statusOutputting.
+  ///
+  /// In en, this message translates to:
+  /// **'Outputting'**
+  String get statusOutputting;
+
+  /// No description provided for @statusEndLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Output done'**
+  String get statusEndLabel;
+
+  /// No description provided for @statusAcceptingWeb.
+  ///
+  /// In en, this message translates to:
+  /// **'Accepting (Web)'**
+  String get statusAcceptingWeb;
+
+  /// No description provided for @searchButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get searchButton;
+
+  /// No description provided for @searchingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching...'**
+  String get searchingLabel;
+
+  /// No description provided for @searchPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Search results will appear here'**
+  String get searchPlaceholder;
+
+  /// No description provided for @noJobsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No jobs found'**
+  String get noJobsFound;
+
+  /// No description provided for @resultCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} results'**
+  String resultCount(int count);
+
+  /// No description provided for @monthYearLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{month}/{year}'**
+  String monthYearLabel(int year, int month);
 }
 
 class _AppLocalizationsDelegate

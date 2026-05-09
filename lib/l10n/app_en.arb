@@ -65,5 +65,41 @@
   "printing": "Printing...",
   "pleaseWait": "Please wait",
   "printStatus": "Print status",
-  "close": "Close"
+  "close": "Close",
+
+  "historyTitle": "History",
+  "filterPeriod": "Period",
+  "filterStartMonth": "Start month",
+  "filterEndMonth": "End month",
+  "filterStatusType": "Status",
+  "pickerCancel": "Cancel",
+  "pickerDone": "Done",
+  "statusNormal": "Normal",
+  "statusError": "Error",
+  "statusCancelLabel": "Cancel",
+  "statusDeleteBat": "Auto delete (bat)",
+  "statusDeleteJob": "Auto delete (job)",
+  "statusAccepting": "Accepting",
+  "statusOrderWait": "Awaiting order",
+  "statusOutputWait": "Output wait",
+  "statusOutputting": "Outputting",
+  "statusEndLabel": "Output done",
+  "statusAcceptingWeb": "Accepting (Web)",
+  "searchButton": "Search",
+  "searchingLabel": "Searching...",
+  "searchPlaceholder": "Search results will appear here",
+  "noJobsFound": "No jobs found",
+  "resultCount": "{count} results",
+  "@resultCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "monthYearLabel": "{month}/{year}",
+  "@monthYearLabel": {
+    "placeholders": {
+      "year": {"type": "int"},
+      "month": {"type": "int"}
+    }
+  }
 }
