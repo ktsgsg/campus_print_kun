@@ -1,7 +1,9 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart';
 
+import '../features/pdf/pdf_preview_source.dart';
 import '../features/webprint/webprint.dart';
 import '../l10n/app_localizations.dart';
 import 'app_colors.dart';
@@ -12,11 +14,11 @@ import 'app_colors.dart';
 class PrintLayoutPreview extends StatefulWidget {
   const PrintLayoutPreview({
     super.key,
-    required this.pageCount,
+    required this.source,
     required this.format,
   });
 
-  final int pageCount;
+  final PdfPreviewSource source;
   final PrintFormat format;
 
   @override
@@ -45,9 +47,10 @@ class _PrintLayoutPreviewState extends State<PrintLayoutPreview> {
     final paperLabel = fmt['paper_type'] == '05' ? 'A3' : 'A4';
     final longEdgeBinding = fmt['print_orientation'] == '1';
 
+    final totalPages = widget.source.pageCount;
     final pagesPerSheet = duplex ? nup * 2 : nup;
     final sheetCount =
-        (widget.pageCount / pagesPerSheet).ceil().clamp(1, 9999);
+        (totalPages / pagesPerSheet).ceil().clamp(1, 9999);
 
     return Column(
       children: [
@@ -66,10 +69,11 @@ class _PrintLayoutPreviewState extends State<PrintLayoutPreview> {
                     children: [
                       Expanded(
                         child: _PaperSide(
+                          source: widget.source,
                           firstPage: firstPage,
                           nup: nup,
                           horizontal: horizontal,
-                          totalPages: widget.pageCount,
+                          totalPages: totalPages,
                           paperLabel: paperLabel,
                           sideLabel: l10n.previewFront,
                           bindingEdge: longEdgeBinding
@@ -84,10 +88,11 @@ class _PrintLayoutPreviewState extends State<PrintLayoutPreview> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: _PaperSide(
+                          source: widget.source,
                           firstPage: firstPage + nup,
                           nup: nup,
                           horizontal: horizontal,
-                          totalPages: widget.pageCount,
+                          totalPages: totalPages,
                           paperLabel: paperLabel,
                           sideLabel: l10n.previewBack,
                           bindingEdge: longEdgeBinding
@@ -104,10 +109,11 @@ class _PrintLayoutPreviewState extends State<PrintLayoutPreview> {
                 );
               }
               return _PaperSide(
+                source: widget.source,
                 firstPage: firstPage,
                 nup: nup,
                 horizontal: horizontal,
-                totalPages: widget.pageCount,
+                totalPages: totalPages,
                 paperLabel: paperLabel,
                 sideLabel: null,
                 bindingEdge: longEdgeBinding ? _Edge.left : _Edge.top,
@@ -137,6 +143,7 @@ class _PrintLayoutPreviewState extends State<PrintLayoutPreview> {
 
 class _PaperSide extends StatelessWidget {
   const _PaperSide({
+    required this.source,
     required this.firstPage,
     required this.nup,
     required this.horizontal,
@@ -148,6 +155,7 @@ class _PaperSide extends StatelessWidget {
     required this.bindingLabel,
   });
 
+  final PdfPreviewSource source;
   final int firstPage;
   final int nup;
   final bool horizontal;
@@ -168,6 +176,7 @@ class _PaperSide extends StatelessWidget {
             child: AspectRatio(
               aspectRatio: 1 / 1.4142, // A4/A3 portrait
               child: _Paper(
+                source: source,
                 firstPage: firstPage,
                 nup: nup,
                 horizontal: horizontal,
@@ -200,6 +209,7 @@ class _PaperSide extends StatelessWidget {
 
 class _Paper extends StatelessWidget {
   const _Paper({
+    required this.source,
     required this.firstPage,
     required this.nup,
     required this.horizontal,
@@ -210,6 +220,7 @@ class _Paper extends StatelessWidget {
     required this.bindingLabel,
   });
 
+  final PdfPreviewSource source;
   final int firstPage;
   final int nup;
   final bool horizontal;
@@ -256,6 +267,7 @@ class _Paper extends StatelessWidget {
                       child: Padding(
                         padding: const EdgeInsets.all(3),
                         child: _PageCell(
+                          source: source,
                           pageNumber: cells[r * cols + c],
                           border: border,
                         ),
@@ -372,41 +384,60 @@ class _BindingStripe extends StatelessWidget {
 }
 
 class _PageCell extends StatelessWidget {
-  const _PageCell({required this.pageNumber, required this.border});
+  const _PageCell({
+    required this.source,
+    required this.pageNumber,
+    required this.border,
+  });
 
+  final PdfPreviewSource source;
   final int? pageNumber;
   final Color border;
 
   @override
   Widget build(BuildContext context) {
+    if (pageNumber == null) {
+      return const SizedBox.shrink();
+    }
     return Container(
       decoration: BoxDecoration(
-        color: pageNumber == null
-            ? const Color(0x00000000)
-            : const Color(0xFFF7F7FA),
-        border: Border.all(
-          color: border,
-          style: pageNumber == null ? BorderStyle.none : BorderStyle.solid,
-        ),
+        color: const Color(0xFFFFFFFF),
+        border: Border.all(color: border),
         borderRadius: BorderRadius.circular(2),
       ),
-      alignment: Alignment.center,
-      child: pageNumber == null
-          ? null
-          : FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Text(
-                  '$pageNumber',
-                  style: const TextStyle(
-                    fontSize: 28,
-                    color: Color(0xFF555555),
-                    fontWeight: FontWeight.w500,
-                  ),
+      clipBehavior: Clip.hardEdge,
+      child: FutureBuilder<Uint8List?>(
+        future: source.renderPage(pageNumber!),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(
+              child: SizedBox(
+                width: 14,
+                height: 14,
+                child: CupertinoActivityIndicator(radius: 7),
+              ),
+            );
+          }
+          final bytes = snapshot.data;
+          if (bytes == null) {
+            return Center(
+              child: Text(
+                '$pageNumber',
+                style: const TextStyle(
+                  fontSize: 18,
+                  color: Color(0xFF999999),
                 ),
               ),
-            ),
+            );
+          }
+          return Image.memory(
+            bytes,
+            fit: BoxFit.contain,
+            gaplessPlayback: true,
+            filterQuality: FilterQuality.medium,
+          );
+        },
+      ),
     );
   }
 }
