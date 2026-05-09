@@ -661,7 +661,7 @@ class _PrintStatusCard extends StatelessWidget {
               _Tag('${job.copies}部'),
               if (totalPages > 0) ...[
                 const SizedBox(width: 6),
-                _Tag('${totalPages}枚'),
+                _Tag('$totalPages枚'),
               ],
               const Spacer(),
               Text(
@@ -693,11 +693,13 @@ class _StatusBadge extends StatelessWidget {
     if (label.contains('エラー')) return CupertinoColors.systemRed;
     if (label.contains('キャンセル')) return CupertinoColors.systemOrange;
     if (label.contains('削除')) return AppColors.secondaryText;
-    if (label.contains('正常') || label.contains('出力完了'))
+    if (label.contains('正常') || label.contains('出力完了')) {
       return CupertinoColors.systemGreen;
+    }
     if (label.contains('出力中')) return CupertinoColors.systemYellow;
-    if (label.contains('出力待ち') || label.contains('指示待ち'))
+    if (label.contains('出力待ち') || label.contains('指示待ち')) {
       return CupertinoColors.systemOrange;
+    }
     return AppColors.primary;
   }
 

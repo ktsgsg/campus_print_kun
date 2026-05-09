@@ -121,9 +121,10 @@ class _PrintTestPageState extends State<PrintTestPage> {
       await _showAlert(l10n.inputError, l10n.pdfRequired);
       return;
     }
+    final navigator = Navigator.of(context);
     await _credentialStore.save(Credentials(username: user, password: pass));
     setState(() => _running = true);
-    await Navigator.of(context).push(
+    await navigator.push(
       CupertinoPageRoute(
         builder: (context) => PrintProgressPage(
           user: user,
