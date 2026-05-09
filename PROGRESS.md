@@ -3,8 +3,8 @@
 ## プロジェクト概要
 
 **Campus Print Kun（キャンパスプリントくん）**  
-名城大学の CC Moon プリントサービスに iPhone/iPad から PDF を送信するアプリ。  
-Python スクリプトを Flutter (iOS/macOS) に移植したもの。
+名城大学の CC Moon プリントサービスに iPhone/Android から PDF を送信するアプリ。  
+Python スクリプトを Flutter (iOS/Android) に移植したもの。
 
 ---
 
@@ -13,11 +13,15 @@ Python スクリプトを Flutter (iOS/macOS) に移植したもの。
 - 名城大 SSO → SAML → CC Moon WebPrint への認証フロー
 - RSA 暗号化によるプリントサービス認証
 - PDF の multipart アップロード（印刷ジョブ送信）
-- 認証情報の Keychain 保存・自動ロード
+- 認証情報の Keychain（iOS）/ EncryptedSharedPreferences（Android）保存・自動ロード
 - 印刷設定画面（用紙・両面・部数・n-up）
 - ステップ表示付き進捗画面
-- Cupertino (iOS ネイティブ風) UI
-- iOS Share シートからの PDF 受け取り（Document Types 方式）
+- Cupertino (iOS ネイティブ風) UI・ダークモード対応
+- OS シェアシートからの PDF 受け取り（iOS/Android 両対応）
+- 印刷履歴画面（月範囲・ステータスフィルタで `api/job/histories/search` を検索）
+- 印刷状況画面（ステータスフィルタで `api/job/prints/search` を検索）
+- ボトムタブ（履歴 / 印刷状況）による画面切り替え
+- 日英対応（システム言語に応じて自動切替）
 
 ---
 
@@ -123,23 +127,62 @@ ccmoon からの 302 レスポンスは `Location` ヘッダではなく、ボ�
 
 ---
 
-### 5. iOS Share シート対応
+### 5. OS シェアシート対応（iOS / Android）
 
 **方針:**  
-Share Extension（別 Xcode ターゲット）は不要。  
+Share Extension（別 Xcode ターゲット）は不要。iOS/Android ともにホストアプリ側で処理する。
+
+**iOS:**  
 `Info.plist` に `CFBundleDocumentTypes`（`com.adobe.pdf`、`LSHandlerRank=Alternate`）を
 追加するだけで、iOS が `Documents/Inbox/` にコピーして `SceneDelegate` 経由で通知してくれる。
 
-**iOS Swift 側で詰まった点:**  
 - `FlutterViewController.engine` は non-optional なのに `?.binaryMessenger` と書いてしまい
   コンパイルエラー → `flutterVC.engine.binaryMessenger` に修正
 - `setMethodCallHandler` のクロージャ型が推論されず
   `(call: FlutterMethodCall, result: FlutterResult) in` と明示する必要があった
+- `willConnectTo` 時点では Flutter エンジンが未初期化のため、
+  受け取った URL を `pendingPdfPath` にバッファしておき、
+  `sceneDidBecomeActive` でチャンネルが準備できてから flush する設計にした。
 
-**コールドスタート時の race condition 対策:**  
-`willConnectTo` 時点では Flutter エンジンが未初期化のため、
-受け取った URL を `pendingPdfPath` にバッファしておき、
-`sceneDidBecomeActive` でチャンネルが準備できてから flush する設計にした。
+**Android:**  
+`MainActivity.kt` で `ACTION_VIEW` / `ACTION_SEND` インテントを捕捉。  
+`ContentResolver` で PDF を `cacheDir` にコピーし、パスを MethodChannel 経由で Dart 側に送る。  
+ファイル名は `OpenableColumns.DISPLAY_NAME` で取得（取れなければ `lastPathSegment` にフォールバック）。
+
+---
+
+### 6. 履歴・印刷状況画面のローカライゼーション
+
+**問題:**  
+ARB ファイル（`app_en.arb` / `app_ja.arb`）から `flutter gen-l10n` で Dart ファイルが
+自動生成されるため、生成済みの `app_localizations*.dart` を直接編集しても次ビルド時に上書きされる。
+
+**解決:**  
+ARB ファイルのみを編集し、`flutter gen-l10n` で再生成する運用に統一。
+
+---
+
+### 7. CupertinoTabView 内からの戻る操作
+
+**問題:**  
+`CupertinoTabScaffold` の各タブは独立したナビゲータを持つため、
+ネストされたナビゲータの `pop()` を呼ぶとタブ内遷移のスタックが pop されてしまう。
+
+**解決:**  
+`Navigator.of(context, rootNavigator: true).pop()` でルートナビゲータを明示的に指定する。
+
+---
+
+### 8. ハードコードされた学籍番号の除去
+
+**問題:**  
+`webprint_service.dart` の `getUserinfo()` にデフォルト引数として学籍番号がハードコードされていた。  
+`git log -p` で初期コミットから存在することを確認。
+
+**解決:**  
+1. 現在のコードで `userId = '241205100'` → `userId = ''` に修正
+2. `git filter-repo --replace-text` で全コミット履歴から学籍番号を除去
+3. `git push --force origin main` でリモート（GitHub）にも反映
 
 ---
 
@@ -147,8 +190,7 @@ Share Extension（別 Xcode ターゲット）は不要。
 
 - **SAML 認証の実機での最終確認未完了**（rawHttpsGet への移行後）
 - エラー時のリトライ・タイムアウト処理は未実装
-- iOS Share シートの実機テスト未完了（ビルドエラー修正後）
-- macOS 対応は未着手
+- iOS / Android シェアシートの実機テスト未完了
 
 ---
 
@@ -169,17 +211,24 @@ lib/
     auth/
       credential_store.dart  - Keychain 認証情報保存
     sharing/
-      shared_pdf_service.dart - iOS 共有 PDF 受け取り (MethodChannel)
+      shared_pdf_service.dart - OS 共有 PDF 受け取り (MethodChannel)
   ui/
     print_test_page.dart     - メイン画面（認証情報・PDF 選択・印刷開始）
     print_progress_page.dart - 印刷進捗画面
     print_settings_page.dart - 印刷設定画面
+    job_history_page.dart    - 印刷履歴 + 印刷状況（CupertinoTabScaffold）
     app_colors.dart          - ダークモード対応カラー定義
+  l10n/
+    app_en.arb               - 英語文言 ★編集はここ
+    app_ja.arb               - 日本語文言 ★編集はここ
   main.dart
 
 ios/Runner/
   SceneDelegate.swift        - PDF 共有受け取り・MethodChannel 設定
   Info.plist                 - CFBundleDocumentTypes 登録済み
+
+android/app/src/main/kotlin/.../
+  MainActivity.kt            - ACTION_VIEW/ACTION_SEND インテント処理
 ```
 
 ---
@@ -191,4 +240,7 @@ ios/Runner/
 brew install mitmproxy && mitmweb
 flutter run --dart-define=HTTP_PROXY_HOST=127.0.0.1:8080
 # mitmweb の Raw タブで SAML クエリのバイト列を確認
+
+# ローカライゼーション再生成
+flutter gen-l10n
 ```
