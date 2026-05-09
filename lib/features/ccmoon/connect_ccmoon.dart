@@ -7,12 +7,11 @@ import 'auth_token.dart';
 import 'debug_proxy.dart';
 import 'f5_st.dart';
 import 'raw_http.dart';
+import 'secrets.dart';
 
 const _ccmoonHost = 'https://ccmoon2.meijo-u.ac.jp';
 const _ccmoonDomain = 'ccmoon2.meijo-u.ac.jp';
 const _ssoStartUrl = 'https://slbsso.meijo-u.ac.jp/opensso/sso.jsp?app=ccmoon';
-const _defaultBaseurl =
-    r'/f5-w-<REDACTED_BACKEND_URL_HEX>$$/';
 
 /// CC Moon 認証後のセッションを表す。`dio` を使ってログイン済み状態で
 /// 後続 API を叩ける。
@@ -176,10 +175,16 @@ Future<CcMoonSession> connectCcmoon({
   applyDebugProxy(dio);
   dio.interceptors.add(CookieManager(jar));
 
-  // 7. baseurl を Webtop HTML から抽出 (取れなければ静的デフォルト)
+  // 7. baseurl を Webtop HTML から抽出 (取れなければ dart-define のフォールバック)
   final baseurl =
       (webtopHtml != null ? _extractBaseurl(webtopHtml) : null) ??
-      _defaultBaseurl;
+      CcmoonSecrets.defaultBaseurl;
+  if (baseurl == null) {
+    throw StateError(
+      'baseurl を解決できませんでした: Webtop からの抽出に失敗し、'
+      'CCMOON_BACKEND_URL_HEX も dart-define されていません',
+    );
+  }
 
   return CcMoonSession(dio: dio, cookieJar: jar, baseurl: baseurl);
 }
@@ -250,8 +255,15 @@ _SamlForm _extractSamlForm(String html) {
 }
 
 String? _extractBaseurl(String html) {
-  final regex = RegExp(r"var\s+ur_baseurl\s*=\s*'([^']+)'");
-  return regex.firstMatch(html)?.group(1);
+  // Webtop HTML には複数サービス分の `var ur_baseurl = '...'` が並ぶ。
+  // dart-define で渡されたフィルタ hex を含むエントリのみを採用する。
+  // フィルタ未設定だと localhost や別サービスのエントリを誤って拾い、
+  // 以降の API 呼び出しが 302 で失敗するため、抽出を諦めて default にフォールバックする。
+  final filter = CcmoonSecrets.backendFilterHex;
+  if (filter.isEmpty) return null;
+  final pattern =
+      "var\\s+ur_baseurl\\s*=\\s*'(/f5-w-[0-9a-fA-F]*$filter[0-9a-fA-F]*\\\$\\\$/)'";
+  return RegExp(pattern).firstMatch(html)?.group(1);
 }
 
 String _requireLocation(dynamic res, String label) {

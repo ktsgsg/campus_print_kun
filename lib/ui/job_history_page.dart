@@ -233,8 +233,8 @@ class _JobHistoriesPageState extends State<_JobHistoriesPage> {
         'end_date': _toYYYYMM(_endDate),
       };
 
-      const url =
-          'https://ccmoon2.meijo-u.ac.jp/f5-w-<REDACTED_BACKEND_URL_HEX>\$\$/user/f5-h-\$\$/user/f5-h-\$\$/api/job/histories/search';
+      final url =
+          'https://ccmoon2.meijo-u.ac.jp${session.baseurl}user/f5-h-\$\$/user/f5-h-\$\$/api/job/histories/search';
 
       final res = await session.dio.get<String>(
         url,
@@ -420,8 +420,8 @@ class _PrintStatusPageState extends State<_PrintStatusPage> {
         'accepting_web': _acceptingWeb.toString(),
       };
 
-      const url =
-          'https://ccmoon2.meijo-u.ac.jp/f5-w-<REDACTED_BACKEND_URL_HEX>\$\$/user/f5-h-\$\$/user/f5-h-\$\$/api/job/prints/search';
+      final url =
+          'https://ccmoon2.meijo-u.ac.jp${session.baseurl}user/f5-h-\$\$/user/f5-h-\$\$/api/job/prints/search';
 
       final res = await session.dio.get<String>(
         url,
