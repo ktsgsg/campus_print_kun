@@ -1,3 +1,5 @@
+import 'secrets.dart';
+
 class WebtopList {
   static const String hostname = 'https://ccmoon2.meijo-u.ac.jp';
   static const String _macApplies = 'user/mac_applies/index/2/';
@@ -7,10 +9,8 @@ class WebtopList {
 
   final String baseurl;
 
-  const WebtopList({
-    this.baseurl =
-        r'/f5-w-<REDACTED_BACKEND_URL_HEX>$$/',
-  });
+  WebtopList({String? baseurl})
+    : baseurl = baseurl ?? CcmoonSecrets.defaultBaseurl ?? '';
 
   String get urlMac => '$hostname$baseurl$_macApplies';
   String get urlPrint => '$hostname$baseurl$_printService';
