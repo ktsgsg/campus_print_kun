@@ -1,85 +1,11 @@
-import 'dart:convert';
-
-import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 
+import '../data/repositories/job_history_repository.dart';
+import '../domain/models/print_job.dart';
 import '../features/ccmoon/ccmoon.dart';
 import '../features/webprint/webprint_service.dart';
 import '../l10n/app_localizations.dart';
 import 'app_colors.dart';
-
-// ─── モデル ────────────────────────────────────────────────
-class PrintJob {
-  const PrintJob({
-    required this.jobSc,
-    required this.statusName,
-    required this.documentName,
-    required this.receivedDatetime,
-    required this.duplexName,
-    required this.colorModeName,
-    required this.copies,
-  });
-
-  final String jobSc;
-  final String statusName;
-  final String documentName;
-  final String receivedDatetime;
-  final String duplexName;
-  final String colorModeName;
-  final int copies;
-
-  factory PrintJob.fromJson(Map<String, dynamic> j) => PrintJob(
-        jobSc: (j['job_sc'] as String?) ?? '',
-        statusName: (j['job_completed_status_name'] as String?) ?? '',
-        documentName: (j['document_name'] as String?) ?? '',
-        receivedDatetime: (j['job_received_datetime'] as String?) ?? '',
-        duplexName: (j['pre_duplex_type_name'] as String?) ?? '',
-        colorModeName: (j['pre_color_mode_type_name'] as String?) ?? '',
-        copies: (j['pre_output_copies'] as int?) ?? 1,
-      );
-}
-
-class PrintStatusJob {
-  const PrintStatusJob({
-    required this.jobSc,
-    required this.statusName,
-    required this.documentName,
-    required this.receivedDatetime,
-    required this.duplexName,
-    required this.colorModeName,
-    required this.copies,
-    required this.queueName,
-    required this.paperSizeName,
-    required this.papersColor,
-    required this.papersMono,
-  });
-
-  final String jobSc;
-  final String statusName;
-  final String documentName;
-  final String receivedDatetime;
-  final String duplexName;
-  final String colorModeName;
-  final int copies;
-  final String queueName;
-  final String paperSizeName;
-  final int papersColor;
-  final int papersMono;
-
-  factory PrintStatusJob.fromJson(Map<String, dynamic> j) => PrintStatusJob(
-        jobSc: (j['job_sc'] as String?) ?? '',
-        statusName: (j['print_job_status_name'] as String?) ?? '',
-        documentName: (j['document_name'] as String?) ?? '',
-        receivedDatetime: (j['job_received_datetime'] as String?) ?? '',
-        duplexName: (j['pre_duplex_type_name'] as String?) ?? '',
-        colorModeName: (j['pre_color_mode_type_name'] as String?) ?? '',
-        copies: (j['pre_output_copies'] as int?) ?? 1,
-        queueName: (j['print_queue_name'] as String?) ?? '',
-        paperSizeName: (j['pre_paper_size_name'] as String?) ?? '',
-        papersColor: (j['pre_output_papers_per_copies_color'] as int?) ?? 0,
-        papersMono: (j['pre_output_papers_per_copies_mono'] as int?) ?? 0,
-      );
-}
 
 // ─── エントリーポイント ────────────────────────────────────
 class JobHistoryPage extends StatelessWidget {
@@ -159,9 +85,6 @@ class _JobHistoriesPageState extends State<_JobHistoriesPage> {
     _endDate = DateTime(now.year, now.month);
   }
 
-  String _toYYYYMM(DateTime d) =>
-      '${d.year}${d.month.toString().padLeft(2, '0')}';
-
   Future<void> _pickMonth(
       {required bool isStart, required AppLocalizations l10n}) async {
     final initial = isStart ? _startDate : _endDate;
@@ -222,31 +145,19 @@ class _JobHistoriesPageState extends State<_JobHistoriesPage> {
       final wp = WebPrint(session);
       await wp.initialize(username: widget.user, password: widget.pass);
 
-      final params = {
-        'user_id': widget.user,
-        'normal': _normal.toString(),
-        'error': _error.toString(),
-        'cancel': _cancel.toString(),
-        'delete_bat': _deleteBat.toString(),
-        'delete_job': _deleteJob.toString(),
-        'start_date': _toYYYYMM(_startDate),
-        'end_date': _toYYYYMM(_endDate),
-      };
-
-      final url =
-          'https://ccmoon2.meijo-u.ac.jp${session.baseurl}user/f5-h-\$\$/user/f5-h-\$\$/api/job/histories/search';
-
-      final res = await session.dio.get<String>(
-        url,
-        queryParameters: params,
-        options: Options(responseType: ResponseType.plain),
+      final repo = JobHistoryRepository(session);
+      final jobs = await repo.searchHistories(
+        HistorySearchFilter(
+          userId: widget.user,
+          startMonth: _startDate,
+          endMonth: _endDate,
+          normal: _normal,
+          error: _error,
+          cancel: _cancel,
+          deleteBat: _deleteBat,
+          deleteJob: _deleteJob,
+        ),
       );
-
-      final body = jsonDecode(res.data!) as Map<String, dynamic>;
-      final array = body['job_history_array'] as List<dynamic>;
-      final jobs = array
-          .map((e) => PrintJob.fromJson(e as Map<String, dynamic>))
-          .toList();
 
       if (mounted) setState(() => _results = jobs);
     } catch (e) {
@@ -410,30 +321,18 @@ class _PrintStatusPageState extends State<_PrintStatusPage> {
       final wp = WebPrint(session);
       await wp.initialize(username: widget.user, password: widget.pass);
 
-      final params = {
-        'user_id': widget.user,
-        'accepting': _accepting.toString(),
-        'order_wait': _orderWait.toString(),
-        'output_wait': _outputWait.toString(),
-        'outputting': _outputting.toString(),
-        'end': _end.toString(),
-        'accepting_web': _acceptingWeb.toString(),
-      };
-
-      final url =
-          'https://ccmoon2.meijo-u.ac.jp${session.baseurl}user/f5-h-\$\$/user/f5-h-\$\$/api/job/prints/search';
-
-      final res = await session.dio.get<String>(
-        url,
-        queryParameters: params,
-        options: Options(responseType: ResponseType.plain),
+      final repo = JobHistoryRepository(session);
+      final jobs = await repo.searchPrints(
+        PrintStatusFilter(
+          userId: widget.user,
+          accepting: _accepting,
+          orderWait: _orderWait,
+          outputWait: _outputWait,
+          outputting: _outputting,
+          end: _end,
+          acceptingWeb: _acceptingWeb,
+        ),
       );
-
-      final body = jsonDecode(res.data!) as Map<String, dynamic>;
-      final array = body['print_job_array'] as List<dynamic>;
-      final jobs = array
-          .map((e) => PrintStatusJob.fromJson(e as Map<String, dynamic>))
-          .toList();
 
       if (mounted) setState(() => _results = jobs);
     } catch (e) {
