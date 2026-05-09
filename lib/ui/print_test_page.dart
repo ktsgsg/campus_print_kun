@@ -5,11 +5,13 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 
 import '../features/auth/credential_store.dart';
+import '../features/pdf/pdf_page_counter.dart';
 import '../features/sharing/shared_pdf_service.dart';
 import '../features/webprint/webprint.dart';
 import '../l10n/app_localizations.dart';
 import 'app_colors.dart';
 import 'job_history_page.dart';
+import 'print_layout_preview.dart';
 import 'print_progress_page.dart';
 import 'print_settings_page.dart';
 
@@ -28,6 +30,7 @@ class _PrintTestPageState extends State<PrintTestPage> {
   bool _running = false;
   PrintFormat _printFormat = PrintFormat();
   StreamSubscription<String>? _sharingSubscription;
+  int? _pageCount;
 
   @override
   void initState() {
@@ -41,7 +44,19 @@ class _PrintTestPageState extends State<PrintTestPage> {
 
   void _applySharedPdf(String path) {
     if (!mounted) return;
-    setState(() => _selectedFile = File(path));
+    final file = File(path);
+    setState(() {
+      _selectedFile = file;
+      _pageCount = null;
+    });
+    _refreshPageCount(file);
+  }
+
+  Future<void> _refreshPageCount(File file) async {
+    final count = await countPdfPages(file);
+    if (!mounted) return;
+    if (_selectedFile?.path != file.path) return;
+    setState(() => _pageCount = count);
   }
 
   Future<void> _loadSavedCredentials() async {
@@ -83,9 +98,12 @@ class _PrintTestPageState extends State<PrintTestPage> {
       withData: false,
     );
     if (result == null || result.files.single.path == null) return;
+    final file = File(result.files.single.path!);
     setState(() {
-      _selectedFile = File(result.files.single.path!);
+      _selectedFile = file;
+      _pageCount = null;
     });
+    _refreshPageCount(file);
   }
 
   String _formatSummary(AppLocalizations l10n, PrintFormat format) {
@@ -256,7 +274,31 @@ class _PrintTestPageState extends State<PrintTestPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              Expanded(
+                child: _selectedFile != null && _pageCount != null
+                    ? PrintLayoutPreview(
+                        key: ValueKey(
+                          '${_selectedFile!.path}|$_pageCount',
+                        ),
+                        pageCount: _pageCount!,
+                        format: _printFormat,
+                      )
+                    : Center(
+                        child: _selectedFile != null
+                            ? const CupertinoActivityIndicator()
+                            : Text(
+                                l10n.previewNoPdf,
+                                style: TextStyle(
+                                  color: CupertinoDynamicColor.resolve(
+                                    AppColors.secondaryText,
+                                    context,
+                                  ),
+                                ),
+                              ),
+                      ),
+              ),
+              const SizedBox(height: 12),
               CupertinoButton.filled(
                 onPressed: _running ? null : _startPrint,
                 padding: const EdgeInsets.symmetric(vertical: 14),

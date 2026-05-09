@@ -225,4 +225,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String monthYearLabel(int year, int month) {
     return '$month/$year';
   }
+
+  @override
+  String get previewFront => 'Front';
+
+  @override
+  String get previewBack => 'Back';
+
+  @override
+  String previewSheetIndicator(int current, int total) {
+    return '$current / $total sheets';
+  }
+
+  @override
+  String get previewNoPdf => 'Select a PDF to see the preview';
 }
