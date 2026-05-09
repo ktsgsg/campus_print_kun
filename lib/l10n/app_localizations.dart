@@ -534,6 +534,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select a PDF to see the preview'**
   String get previewNoPdf;
+
+  /// No description provided for @previewBindLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Long edge'**
+  String get previewBindLong;
+
+  /// No description provided for @previewBindShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Short edge'**
+  String get previewBindShort;
 }
 
 class _AppLocalizationsDelegate

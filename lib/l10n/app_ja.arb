@@ -79,5 +79,7 @@
   "previewFront": "表",
   "previewBack": "裏",
   "previewSheetIndicator": "{current} / {total} 枚",
-  "previewNoPdf": "PDF を選択するとプレビューが表示されます"
+  "previewNoPdf": "PDF を選択するとプレビューが表示されます",
+  "previewBindLong": "長辺綴じ",
+  "previewBindShort": "短辺綴じ"
 }

@@ -238,4 +238,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get previewNoPdf => 'PDF を選択するとプレビューが表示されます';
+
+  @override
+  String get previewBindLong => '長辺綴じ';
+
+  @override
+  String get previewBindShort => '短辺綴じ';
 }

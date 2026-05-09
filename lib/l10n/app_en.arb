@@ -112,5 +112,7 @@
       "total": {"type": "int"}
     }
   },
-  "previewNoPdf": "Select a PDF to see the preview"
+  "previewNoPdf": "Select a PDF to see the preview",
+  "previewBindLong": "Long edge",
+  "previewBindShort": "Short edge"
 }
