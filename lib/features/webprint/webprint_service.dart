@@ -49,6 +49,7 @@ class WebPrint {
 
   WebPrint(this.session);
 
+  String get _printserviceUrl => '${WebtopConst.host}${session.baseurl}user/';
   String get _userBase =>
       '${WebtopConst.host}${session.baseurl}user/f5-h-\$\$/';
   String _api(String path) => '$_userBase$path';
@@ -67,10 +68,7 @@ class WebPrint {
 
   /// プリント画面の HTML を取得して返す (ファイルには書き出さない)。
   Future<String?> getPrintservicePage({String? url}) async {
-    final target =
-        url ??
-        'https://ccmoon2.meijo-u.ac.jp/f5-w-<REDACTED_BACKEND_URL_HEX>\$\$/user/';
-    print(target);
+    final target = url ?? _printserviceUrl;
     final res = await session.dio.get<String>(
       target,
       options: Options(
@@ -84,15 +82,16 @@ class WebPrint {
 
   /// 認証用 RSA 公開鍵を取得し、PEM 形式に整形して返す。
   Future<String> getPubKey() async {
-    final res = await session.dio.get<String>(
-      'https://ccmoon2.meijo-u.ac.jp/f5-w-<REDACTED_BACKEND_URL_HEX>\$\$/user/f5-h-\$\$/api/auth/getpubkey',
-      options: Options(responseType: ResponseType.json),
+    final res = await session.dio.get<dynamic>(
+      _api('api/auth/getpubkey'),
+      options: Options(responseType: ResponseType.plain),
     );
     if (res.statusCode != 200) {
       throw Exception('公開鍵の取得に失敗しました (status=${res.statusCode})');
     }
-    //pubkey: "-----BEGINで届くので
-    final raw = (jsonDecode(res.data!) as Map)['pubkey'] as String;
+    final body = res.data;
+    final Map decoded = body is String ? jsonDecode(body) as Map : body as Map;
+    final raw = decoded['pubkey'] as String;
     return _normalizePem(raw);
   }
 
@@ -133,7 +132,7 @@ class WebPrint {
   }) async {
     final body = await encryptUserinfo(username: username, password: password);
     final res = await session.dio.post<dynamic>(
-      "https://ccmoon2.meijo-u.ac.jp/f5-w-<REDACTED_BACKEND_URL_HEX>\$\$/user/f5-h-\$\$/api/auth/authuserenc",
+      _api('api/auth/authuserenc'),
       data: body,
       options: Options(
         contentType: Headers.jsonContentType,
@@ -155,7 +154,7 @@ class WebPrint {
   /// 自動書き出しは行わない。必要なら呼び出し側で保存する)。
   Future<Map<String, dynamic>> getSettings() async {
     final res = await session.dio.get<dynamic>(
-      'https://ccmoon2.meijo-u.ac.jp/f5-w-<REDACTED_BACKEND_URL_HEX>\$\$/user/f5-h-\$\$/api/system/settings',
+      _api('api/system/settings'),
       options: Options(responseType: ResponseType.json),
     );
     if (res.statusCode != 200) {
@@ -170,7 +169,7 @@ class WebPrint {
     int type = 1,
   }) async {
     final res = await session.dio.get<dynamic>(
-      'https://ccmoon2.meijo-u.ac.jp/f5-w-<REDACTED_BACKEND_URL_HEX>\$\$/user/f5-h-\$\$/api/user/users/$userId?type=$type',
+      _api('api/user/users/$userId?type=$type'),
       options: Options(responseType: ResponseType.json),
     );
     if (res.statusCode != 200) {
@@ -182,7 +181,7 @@ class WebPrint {
   /// 自端末の IP を取得して [ipAddress] に保持。
   Future<String> getOwnIpAddress() async {
     final res = await session.dio.get<dynamic>(
-      'https://ccmoon2.meijo-u.ac.jp/f5-w-<REDACTED_BACKEND_URL_HEX>\$\$/user/f5-h-\$\$/api/system/notice/ownipaddress',
+      _api('api/system/notice/ownipaddress'),
       options: Options(responseType: ResponseType.json),
     );
     if (res.statusCode != 200) {
@@ -228,7 +227,7 @@ class WebPrint {
       ),
     );
     final res = await session.dio.post<dynamic>(
-      'https://ccmoon2.meijo-u.ac.jp/f5-w-<REDACTED_BACKEND_URL_HEX>\$\$/user/f5-h-\$\$/api/spool01/files/webprint',
+      _api('api/spool01/files/webprint'),
       data: formData,
       options: Options(followRedirects: false, validateStatus: (_) => true),
     );
