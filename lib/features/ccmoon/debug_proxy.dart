@@ -16,7 +16,7 @@ void applyDebugProxy(Dio client) {
     createHttpClient: () {
       final c = HttpClient();
       c.findProxy = (_) => 'PROXY $proxyHost';
-      c.badCertificateCallback = (_, __, ___) => true;
+      c.badCertificateCallback = (_, _, _) => true;
       return c;
     },
   );
