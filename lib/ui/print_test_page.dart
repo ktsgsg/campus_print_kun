@@ -5,7 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 
 import '../features/auth/credential_store.dart';
-import '../features/pdf/pdf_page_counter.dart';
+import '../features/pdf/pdf_preview_source.dart';
 import '../features/sharing/shared_pdf_service.dart';
 import '../features/webprint/webprint.dart';
 import '../l10n/app_localizations.dart';
@@ -30,7 +30,8 @@ class _PrintTestPageState extends State<PrintTestPage> {
   bool _running = false;
   PrintFormat _printFormat = PrintFormat();
   StreamSubscription<String>? _sharingSubscription;
-  int? _pageCount;
+  PdfPreviewSource? _previewSource;
+  bool _previewLoading = false;
 
   @override
   void initState() {
@@ -45,18 +46,35 @@ class _PrintTestPageState extends State<PrintTestPage> {
   void _applySharedPdf(String path) {
     if (!mounted) return;
     final file = File(path);
-    setState(() {
-      _selectedFile = file;
-      _pageCount = null;
-    });
-    _refreshPageCount(file);
+    setState(() => _selectedFile = file);
+    _loadPreview(file);
   }
 
-  Future<void> _refreshPageCount(File file) async {
-    final count = await countPdfPages(file);
-    if (!mounted) return;
-    if (_selectedFile?.path != file.path) return;
-    setState(() => _pageCount = count);
+  Future<void> _loadPreview(File file) async {
+    final old = _previewSource;
+    setState(() {
+      _previewSource = null;
+      _previewLoading = true;
+    });
+    await old?.close();
+    PdfPreviewSource? source;
+    try {
+      source = await PdfPreviewSource.open(file.path);
+    } catch (_) {
+      source = null;
+    }
+    if (!mounted) {
+      await source?.close();
+      return;
+    }
+    if (_selectedFile?.path != file.path) {
+      await source?.close();
+      return;
+    }
+    setState(() {
+      _previewSource = source;
+      _previewLoading = false;
+    });
   }
 
   Future<void> _loadSavedCredentials() async {
@@ -70,6 +88,7 @@ class _PrintTestPageState extends State<PrintTestPage> {
   @override
   void dispose() {
     _sharingSubscription?.cancel();
+    _previewSource?.close();
     _userController.dispose();
     _passController.dispose();
     super.dispose();
@@ -99,11 +118,8 @@ class _PrintTestPageState extends State<PrintTestPage> {
     );
     if (result == null || result.files.single.path == null) return;
     final file = File(result.files.single.path!);
-    setState(() {
-      _selectedFile = file;
-      _pageCount = null;
-    });
-    _refreshPageCount(file);
+    setState(() => _selectedFile = file);
+    _loadPreview(file);
   }
 
   String _formatSummary(AppLocalizations l10n, PrintFormat format) {
@@ -276,16 +292,14 @@ class _PrintTestPageState extends State<PrintTestPage> {
               ),
               const SizedBox(height: 12),
               Expanded(
-                child: _selectedFile != null && _pageCount != null
+                child: _previewSource != null
                     ? PrintLayoutPreview(
-                        key: ValueKey(
-                          '${_selectedFile!.path}|$_pageCount',
-                        ),
-                        pageCount: _pageCount!,
+                        key: ValueKey(_selectedFile?.path),
+                        source: _previewSource!,
                         format: _printFormat,
                       )
                     : Center(
-                        child: _selectedFile != null
+                        child: _previewLoading
                             ? const CupertinoActivityIndicator()
                             : Text(
                                 l10n.previewNoPdf,
