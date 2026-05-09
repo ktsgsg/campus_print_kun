@@ -480,21 +480,26 @@ class _JobCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              if (job.duplexName.isNotEmpty) ...[
-                _Tag(job.duplexName),
-                const SizedBox(width: 6),
-              ],
-              if (job.colorModeName.isNotEmpty) ...[
-                _Tag(job.colorModeName),
-                const SizedBox(width: 6),
-              ],
-              _Tag('${job.copies}部'),
-              const Spacer(),
+              Expanded(
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    if (job.duplexName.isNotEmpty) _Tag(job.duplexName),
+                    if (job.colorModeName.isNotEmpty) _Tag(job.colorModeName),
+                    _Tag('${job.copies}部'),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
               Text(
                 job.receivedDatetime,
                 style: const TextStyle(
-                    fontSize: 12, color: AppColors.secondaryText),
+                  fontSize: 12,
+                  color: AppColors.secondaryText,
+                ),
               ),
             ],
           ),
@@ -544,29 +549,28 @@ class _PrintStatusCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              if (job.paperSizeName.isNotEmpty) ...[
-                _Tag(job.paperSizeName),
-                const SizedBox(width: 6),
-              ],
-              if (job.duplexName.isNotEmpty) ...[
-                _Tag(job.duplexName),
-                const SizedBox(width: 6),
-              ],
-              if (job.colorModeName.isNotEmpty) ...[
-                _Tag(job.colorModeName),
-                const SizedBox(width: 6),
-              ],
-              _Tag('${job.copies}部'),
-              if (totalPages > 0) ...[
-                const SizedBox(width: 6),
-                _Tag('$totalPages枚'),
-              ],
-              const Spacer(),
+              Expanded(
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    if (job.paperSizeName.isNotEmpty) _Tag(job.paperSizeName),
+                    if (job.duplexName.isNotEmpty) _Tag(job.duplexName),
+                    if (job.colorModeName.isNotEmpty) _Tag(job.colorModeName),
+                    _Tag('${job.copies}部'),
+                    if (totalPages > 0) _Tag('$totalPages枚'),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
               Text(
                 job.receivedDatetime,
                 style: const TextStyle(
-                    fontSize: 12, color: AppColors.secondaryText),
+                  fontSize: 12,
+                  color: AppColors.secondaryText,
+                ),
               ),
             ],
           ),
