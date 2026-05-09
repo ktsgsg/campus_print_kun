@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 
 import '../features/ccmoon/ccmoon.dart';
 import '../features/webprint/webprint_service.dart';
+import '../l10n/app_localizations.dart';
 import 'app_colors.dart';
 
 // ─── モデル ────────────────────────────────────────────────
@@ -91,14 +92,14 @@ class JobHistoryPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return CupertinoTabScaffold(
       tabBar: CupertinoTabBar(
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(CupertinoIcons.clock),
-            label: '履歴',
+            icon: const Icon(CupertinoIcons.clock),
+            label: AppLocalizations.of(context)!.historyTitle,
           ),
           BottomNavigationBarItem(
-            icon: Icon(CupertinoIcons.printer),
-            label: '印刷状況',
+            icon: const Icon(CupertinoIcons.printer),
+            label: AppLocalizations.of(context)!.printStatus,
           ),
         ],
       ),
@@ -112,6 +113,18 @@ class JobHistoryPage extends StatelessWidget {
       },
     );
   }
+}
+
+// ─── 共通: 戻るボタン付きナビバー ─────────────────────────
+CupertinoNavigationBar _navBar(BuildContext context, String title) {
+  return CupertinoNavigationBar(
+    leading: CupertinoButton(
+      padding: EdgeInsets.zero,
+      onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
+      child: const Icon(CupertinoIcons.chevron_left),
+    ),
+    middle: Text(title),
+  );
 }
 
 // ─── 履歴タブ ──────────────────────────────────────────────
@@ -149,10 +162,8 @@ class _JobHistoriesPageState extends State<_JobHistoriesPage> {
   String _toYYYYMM(DateTime d) =>
       '${d.year}${d.month.toString().padLeft(2, '0')}';
 
-  String _toLabel(DateTime d) =>
-      '${d.year}年${d.month.toString().padLeft(2, '0')}月';
-
-  Future<void> _pickMonth({required bool isStart}) async {
+  Future<void> _pickMonth(
+      {required bool isStart, required AppLocalizations l10n}) async {
     final initial = isStart ? _startDate : _endDate;
     DateTime picked = initial;
     await showCupertinoModalPopup<void>(
@@ -166,11 +177,11 @@ class _JobHistoriesPageState extends State<_JobHistoriesPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 CupertinoButton(
-                  child: const Text('キャンセル'),
+                  child: Text(l10n.pickerCancel),
                   onPressed: () => Navigator.of(ctx).pop(),
                 ),
                 CupertinoButton(
-                  child: const Text('完了'),
+                  child: Text(l10n.pickerDone),
                   onPressed: () {
                     setState(() {
                       if (isStart) {
@@ -247,21 +258,88 @@ class _JobHistoriesPageState extends State<_JobHistoriesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final deco = _fieldDecoration();
     return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(middle: Text('履歴')),
+      navigationBar: _navBar(context, l10n.historyTitle),
       child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildPeriodFilter(),
+              _FilterSection(
+                title: l10n.filterPeriod,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _LabeledField(
+                        label: l10n.filterStartMonth,
+                        child: _MonthPickerField(
+                          label: l10n.monthYearLabel(
+                              _startDate.year, _startDate.month),
+                          decoration: deco,
+                          onTap: () =>
+                              _pickMonth(isStart: true, l10n: l10n),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _LabeledField(
+                        label: l10n.filterEndMonth,
+                        child: _MonthPickerField(
+                          label: l10n.monthYearLabel(
+                              _endDate.year, _endDate.month),
+                          decoration: deco,
+                          onTap: () =>
+                              _pickMonth(isStart: false, l10n: l10n),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 16),
-              _buildStatusFilter(),
+              _FilterSection(
+                title: l10n.filterStatusType,
+                child: Column(
+                  children: [
+                    _CheckRow(items: [
+                      _CheckItem(l10n.statusNormal, _normal,
+                          (v) => setState(() => _normal = v)),
+                      _CheckItem(l10n.statusError, _error,
+                          (v) => setState(() => _error = v)),
+                      _CheckItem(l10n.statusCancelLabel, _cancel,
+                          (v) => setState(() => _cancel = v)),
+                    ]),
+                    const SizedBox(height: 8),
+                    _CheckRow(items: [
+                      _CheckItem(l10n.statusDeleteBat, _deleteBat,
+                          (v) => setState(() => _deleteBat = v)),
+                      _CheckItem(l10n.statusDeleteJob, _deleteJob,
+                          (v) => setState(() => _deleteJob = v)),
+                    ]),
+                  ],
+                ),
+              ),
               const SizedBox(height: 16),
-              _buildSearchButton(),
+              CupertinoButton.filled(
+                onPressed: _loading ? null : _search,
+                child: _loading
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const CupertinoActivityIndicator(
+                              color: CupertinoColors.white),
+                          const SizedBox(width: 8),
+                          Text(l10n.searchingLabel),
+                        ],
+                      )
+                    : Text(l10n.searchButton),
+              ),
               const SizedBox(height: 24),
-              _buildResults(),
+              _buildResults(l10n),
             ],
           ),
         ),
@@ -269,87 +347,15 @@ class _JobHistoriesPageState extends State<_JobHistoriesPage> {
     );
   }
 
-  Widget _buildPeriodFilter() {
-    final deco = _fieldDecoration();
-    return _FilterSection(
-      title: '期間',
-      child: Row(
-        children: [
-          Expanded(
-            child: _LabeledField(
-              label: '開始月',
-              child: _MonthPickerField(
-                label: _toLabel(_startDate),
-                decoration: deco,
-                onTap: () => _pickMonth(isStart: true),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _LabeledField(
-              label: '終了月',
-              child: _MonthPickerField(
-                label: _toLabel(_endDate),
-                decoration: deco,
-                onTap: () => _pickMonth(isStart: false),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusFilter() {
-    return _FilterSection(
-      title: '表示種別',
-      child: Column(
-        children: [
-          _CheckRow(items: [
-            _CheckItem('正常', _normal, (v) => setState(() => _normal = v)),
-            _CheckItem('エラー', _error, (v) => setState(() => _error = v)),
-            _CheckItem('キャンセル', _cancel, (v) => setState(() => _cancel = v)),
-          ]),
-          const SizedBox(height: 8),
-          _CheckRow(items: [
-            _CheckItem('システム削除(bat)', _deleteBat,
-                (v) => setState(() => _deleteBat = v)),
-            _CheckItem('システム削除(job)', _deleteJob,
-                (v) => setState(() => _deleteJob = v)),
-          ]),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchButton() {
-    return CupertinoButton.filled(
-      onPressed: _loading ? null : _search,
-      child: _loading
-          ? const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CupertinoActivityIndicator(color: CupertinoColors.white),
-                SizedBox(width: 8),
-                Text('検索中...'),
-              ],
-            )
-          : const Text('検索'),
-    );
-  }
-
-  Widget _buildResults() {
-    if (_errorMessage != null) {
-      return _errorBox(_errorMessage!);
-    }
+  Widget _buildResults(AppLocalizations l10n) {
+    if (_errorMessage != null) return _errorBox(_errorMessage!);
     final jobs = _results;
-    if (jobs == null) return _emptyPlaceholder('検索結果がここに表示されます');
-    if (jobs.isEmpty) return _emptyPlaceholder('該当するジョブはありません');
+    if (jobs == null) return _emptyPlaceholder(l10n.searchPlaceholder);
+    if (jobs.isEmpty) return _emptyPlaceholder(l10n.noJobsFound);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('${jobs.length} 件',
+        Text(l10n.resultCount(jobs.length),
             style: const TextStyle(
                 fontSize: 13, color: AppColors.secondaryText)),
         const SizedBox(height: 8),
@@ -439,19 +445,56 @@ class _PrintStatusPageState extends State<_PrintStatusPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(middle: Text('印刷状況')),
+      navigationBar: _navBar(context, l10n.printStatus),
       child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildStatusFilter(),
+              _FilterSection(
+                title: l10n.filterStatusType,
+                child: Column(
+                  children: [
+                    _CheckRow(items: [
+                      _CheckItem(l10n.statusAccepting, _accepting,
+                          (v) => setState(() => _accepting = v)),
+                      _CheckItem(l10n.statusOrderWait, _orderWait,
+                          (v) => setState(() => _orderWait = v)),
+                      _CheckItem(l10n.statusOutputWait, _outputWait,
+                          (v) => setState(() => _outputWait = v)),
+                    ]),
+                    const SizedBox(height: 8),
+                    _CheckRow(items: [
+                      _CheckItem(l10n.statusOutputting, _outputting,
+                          (v) => setState(() => _outputting = v)),
+                      _CheckItem(l10n.statusEndLabel, _end,
+                          (v) => setState(() => _end = v)),
+                      _CheckItem(l10n.statusAcceptingWeb, _acceptingWeb,
+                          (v) => setState(() => _acceptingWeb = v)),
+                    ]),
+                  ],
+                ),
+              ),
               const SizedBox(height: 16),
-              _buildSearchButton(),
+              CupertinoButton.filled(
+                onPressed: _loading ? null : _search,
+                child: _loading
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const CupertinoActivityIndicator(
+                              color: CupertinoColors.white),
+                          const SizedBox(width: 8),
+                          Text(l10n.searchingLabel),
+                        ],
+                      )
+                    : Text(l10n.searchButton),
+              ),
               const SizedBox(height: 24),
-              _buildResults(),
+              _buildResults(l10n),
             ],
           ),
         ),
@@ -459,53 +502,15 @@ class _PrintStatusPageState extends State<_PrintStatusPage> {
     );
   }
 
-  Widget _buildStatusFilter() {
-    return _FilterSection(
-      title: '表示種別',
-      child: Column(
-        children: [
-          _CheckRow(items: [
-            _CheckItem('受付中', _accepting, (v) => setState(() => _accepting = v)),
-            _CheckItem('指示待ち', _orderWait, (v) => setState(() => _orderWait = v)),
-            _CheckItem('出力待ち', _outputWait, (v) => setState(() => _outputWait = v)),
-          ]),
-          const SizedBox(height: 8),
-          _CheckRow(items: [
-            _CheckItem('出力中', _outputting, (v) => setState(() => _outputting = v)),
-            _CheckItem('出力完了', _end, (v) => setState(() => _end = v)),
-            _CheckItem('受付中(Web)', _acceptingWeb,
-                (v) => setState(() => _acceptingWeb = v)),
-          ]),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchButton() {
-    return CupertinoButton.filled(
-      onPressed: _loading ? null : _search,
-      child: _loading
-          ? const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CupertinoActivityIndicator(color: CupertinoColors.white),
-                SizedBox(width: 8),
-                Text('検索中...'),
-              ],
-            )
-          : const Text('検索'),
-    );
-  }
-
-  Widget _buildResults() {
+  Widget _buildResults(AppLocalizations l10n) {
     if (_errorMessage != null) return _errorBox(_errorMessage!);
     final jobs = _results;
-    if (jobs == null) return _emptyPlaceholder('検索結果がここに表示されます');
-    if (jobs.isEmpty) return _emptyPlaceholder('該当するジョブはありません');
+    if (jobs == null) return _emptyPlaceholder(l10n.searchPlaceholder);
+    if (jobs.isEmpty) return _emptyPlaceholder(l10n.noJobsFound);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('${jobs.length} 件',
+        Text(l10n.resultCount(jobs.length),
             style: const TextStyle(
                 fontSize: 13, color: AppColors.secondaryText)),
         const SizedBox(height: 8),

@@ -149,4 +149,80 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get close => 'Close';
+
+  @override
+  String get historyTitle => 'History';
+
+  @override
+  String get filterPeriod => 'Period';
+
+  @override
+  String get filterStartMonth => 'Start month';
+
+  @override
+  String get filterEndMonth => 'End month';
+
+  @override
+  String get filterStatusType => 'Status';
+
+  @override
+  String get pickerCancel => 'Cancel';
+
+  @override
+  String get pickerDone => 'Done';
+
+  @override
+  String get statusNormal => 'Normal';
+
+  @override
+  String get statusError => 'Error';
+
+  @override
+  String get statusCancelLabel => 'Cancel';
+
+  @override
+  String get statusDeleteBat => 'Auto delete (bat)';
+
+  @override
+  String get statusDeleteJob => 'Auto delete (job)';
+
+  @override
+  String get statusAccepting => 'Accepting';
+
+  @override
+  String get statusOrderWait => 'Awaiting order';
+
+  @override
+  String get statusOutputWait => 'Output wait';
+
+  @override
+  String get statusOutputting => 'Outputting';
+
+  @override
+  String get statusEndLabel => 'Output done';
+
+  @override
+  String get statusAcceptingWeb => 'Accepting (Web)';
+
+  @override
+  String get searchButton => 'Search';
+
+  @override
+  String get searchingLabel => 'Searching...';
+
+  @override
+  String get searchPlaceholder => 'Search results will appear here';
+
+  @override
+  String get noJobsFound => 'No jobs found';
+
+  @override
+  String resultCount(int count) {
+    return '$count results';
+  }
+
+  @override
+  String monthYearLabel(int year, int month) {
+    return '$month/$year';
+  }
 }
