@@ -190,3 +190,4 @@ app.*.symbols
 # AI related
 .agents/rules/personal-*
 .agents/skills/personal-*
+PROGRESS.md
