@@ -17,37 +17,59 @@
 
 ## 動作環境
 
-| プラットフォーム | 最低バージョン |
-|---|---|
-| iOS | 14.0 以上 |
-| Android | API 21 (Android 5.0) 以上 |
+| プラットフォーム | 最低バージョン            |
+| ---------------- | ------------------------- |
+| iOS              | 14.0 以上                 |
+| Android          | API 21 (Android 5.0) 以上 |
 
 ## ビルド方法
 
+### 1. 依存パッケージの取得
+
 ```bash
-# 依存パッケージの取得
 flutter pub get
+```
 
-# iOS シミュレータで実行
-flutter run
 
-# 実機 (iOS)
-flutter run --release
+### 3. 起動
+
+```bash
+# iOS シミュレータ
+flutter run --dart-define-from-file=ccmoon_secrets.json
+
+# 実機 (iOS) リリースビルド
+flutter run --release --dart-define-from-file=ccmoon_secrets.json
 
 # Android
-flutter run -d android
+flutter run -d android --dart-define-from-file=ccmoon_secrets.json
+```
+
+### l10n を変更した場合
+
+`lib/l10n/app_en.arb` / `app_ja.arb` を編集後、生成済み Dart ファイルを再生成：
+
+```bash
+flutter gen-l10n
 ```
 
 ### mitmproxy でネットワークをデバッグする場合
 
 ```bash
-flutter run --dart-define=HTTP_PROXY_HOST=127.0.0.1:8080
+flutter run \
+  --dart-define-from-file=ccmoon_secrets.json \
+  --dart-define=HTTP_PROXY_HOST=127.0.0.1:8080
 ```
+
+`HTTP_PROXY_HOST` はデバッグ／プロファイルビルド時のみ有効で、リリースビルドでは `kReleaseMode` ガードにより無視されます。
 
 ## プロジェクト構成
 
 ```
 lib/
+├── data/
+│   └── repositories/  API 呼び出しを集約するリポジトリ
+├── domain/
+│   └── models/        ドメインモデル（PrintJob 等）
 ├── features/
 │   ├── auth/          認証情報の保存（Keychain）
 │   ├── ccmoon/        CC Moon SSO 認証フロー
