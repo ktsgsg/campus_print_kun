@@ -17,10 +17,10 @@
 
 ## 動作環境
 
-| プラットフォーム | 最低バージョン |
-|---|---|
-| iOS | 14.0 以上 |
-| Android | API 21 (Android 5.0) 以上 |
+| プラットフォーム | 最低バージョン            |
+| ---------------- | ------------------------- |
+| iOS              | 14.0 以上                 |
+| Android          | API 21 (Android 5.0) 以上 |
 
 ## ビルド方法
 
@@ -30,25 +30,6 @@
 flutter pub get
 ```
 
-### 2. 接続情報の設定 (必須)
-
-印刷バックエンドの hex は非公開のため、リポジトリには含めず `--dart-define` 経由で注入します。
-
-```bash
-# サンプルをコピーして値を埋める
-cp ccmoon_secrets.example.json ccmoon_secrets.json
-```
-
-`ccmoon_secrets.json` を編集して、以下の値を設定します：
-
-```json
-{
-  "CCMOON_BACKEND_URL_HEX": "<https://<印刷バックエンド hostname> を hex エンコードした値>",
-  "CCMOON_BACKEND_FILTER_HEX": "<バックエンドホスト名の中核部分の hex>"
-}
-```
-
-`ccmoon_secrets.json` は `.gitignore` 対象なのでコミットされません。
 
 ### 3. 起動
 
