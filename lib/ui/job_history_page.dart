@@ -170,7 +170,7 @@ class _JobHistoriesPageState extends State<_JobHistoriesPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final deco = _fieldDecoration();
+    final deco = _fieldDecoration(context);
     return CupertinoPageScaffold(
       navigationBar: _navBar(context, l10n.historyTitle),
       child: SafeArea(
@@ -259,16 +259,18 @@ class _JobHistoriesPageState extends State<_JobHistoriesPage> {
   }
 
   Widget _buildResults(AppLocalizations l10n) {
-    if (_errorMessage != null) return _errorBox(_errorMessage!);
+    if (_errorMessage != null) return _ErrorBox(message: _errorMessage!);
     final jobs = _results;
-    if (jobs == null) return _emptyPlaceholder(l10n.searchPlaceholder);
-    if (jobs.isEmpty) return _emptyPlaceholder(l10n.noJobsFound);
+    if (jobs == null) return _EmptyPlaceholder(message: l10n.searchPlaceholder);
+    if (jobs.isEmpty) return _EmptyPlaceholder(message: l10n.noJobsFound);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(l10n.resultCount(jobs.length),
-            style: const TextStyle(
-                fontSize: 13, color: AppColors.secondaryText)),
+            style: TextStyle(
+                fontSize: 13,
+                color: CupertinoDynamicColor.resolve(
+                    AppColors.secondaryText, context))),
         const SizedBox(height: 8),
         ...jobs.map((job) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -278,10 +280,12 @@ class _JobHistoriesPageState extends State<_JobHistoriesPage> {
     );
   }
 
-  BoxDecoration _fieldDecoration() => BoxDecoration(
-        color: AppColors.fieldFill,
+  BoxDecoration _fieldDecoration(BuildContext context) => BoxDecoration(
+        color: CupertinoDynamicColor.resolve(AppColors.fieldFill, context),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.fieldBorder),
+        border: Border.all(
+          color: CupertinoDynamicColor.resolve(AppColors.fieldBorder, context),
+        ),
       );
 }
 
@@ -402,16 +406,18 @@ class _PrintStatusPageState extends State<_PrintStatusPage> {
   }
 
   Widget _buildResults(AppLocalizations l10n) {
-    if (_errorMessage != null) return _errorBox(_errorMessage!);
+    if (_errorMessage != null) return _ErrorBox(message: _errorMessage!);
     final jobs = _results;
-    if (jobs == null) return _emptyPlaceholder(l10n.searchPlaceholder);
-    if (jobs.isEmpty) return _emptyPlaceholder(l10n.noJobsFound);
+    if (jobs == null) return _EmptyPlaceholder(message: l10n.searchPlaceholder);
+    if (jobs.isEmpty) return _EmptyPlaceholder(message: l10n.noJobsFound);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(l10n.resultCount(jobs.length),
-            style: const TextStyle(
-                fontSize: 13, color: AppColors.secondaryText)),
+            style: TextStyle(
+                fontSize: 13,
+                color: CupertinoDynamicColor.resolve(
+                    AppColors.secondaryText, context))),
         const SizedBox(height: 8),
         ...jobs.map((job) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -423,29 +429,58 @@ class _PrintStatusPageState extends State<_PrintStatusPage> {
 }
 
 // ─── 共通ユーティリティ ────────────────────────────────────
-Widget _emptyPlaceholder(String message) => Container(
+class _EmptyPlaceholder extends StatelessWidget {
+  const _EmptyPlaceholder({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
       height: 120,
       decoration: BoxDecoration(
-        color: AppColors.fieldFill,
+        color: CupertinoDynamicColor.resolve(AppColors.fieldFill, context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.fieldBorder),
+        border: Border.all(
+          color: CupertinoDynamicColor.resolve(AppColors.fieldBorder, context),
+        ),
       ),
       child: Center(
-        child: Text(message,
-            style: const TextStyle(color: AppColors.secondaryText)),
+        child: Text(
+          message,
+          style: TextStyle(
+            color:
+                CupertinoDynamicColor.resolve(AppColors.secondaryText, context),
+          ),
+        ),
       ),
     );
+  }
+}
 
-Widget _errorBox(String message) => Container(
+class _ErrorBox extends StatelessWidget {
+  const _ErrorBox({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.fieldFill,
+        color: CupertinoDynamicColor.resolve(AppColors.fieldFill, context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.fieldBorder),
+        border: Border.all(
+          color: CupertinoDynamicColor.resolve(AppColors.fieldBorder, context),
+        ),
       ),
-      child: Text(message,
-          style: const TextStyle(color: CupertinoColors.systemRed)),
+      child: Text(
+        message,
+        style: TextStyle(
+          color: CupertinoColors.systemRed.resolveFrom(context),
+        ),
+      ),
     );
+  }
+}
 
 // ─── ジョブカード ──────────────────────────────────────────
 class _JobCard extends StatelessWidget {
@@ -454,12 +489,16 @@ class _JobCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final secondary =
+        CupertinoDynamicColor.resolve(AppColors.secondaryText, context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.fieldFill,
+        color: CupertinoDynamicColor.resolve(AppColors.fieldFill, context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.fieldBorder),
+        border: Border.all(
+          color: CupertinoDynamicColor.resolve(AppColors.fieldBorder, context),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -469,8 +508,12 @@ class _JobCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   job.documentName,
-                  style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: CupertinoDynamicColor.resolve(
+                        AppColors.labelText, context),
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -496,18 +539,14 @@ class _JobCard extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 job.receivedDatetime,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.secondaryText,
-                ),
+                style: TextStyle(fontSize: 12, color: secondary),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             job.jobSc,
-            style: const TextStyle(
-                fontSize: 11, color: AppColors.secondaryText),
+            style: TextStyle(fontSize: 11, color: secondary),
           ),
         ],
       ),
@@ -523,12 +562,16 @@ class _PrintStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final totalPages = job.papersColor + job.papersMono;
+    final secondary =
+        CupertinoDynamicColor.resolve(AppColors.secondaryText, context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.fieldFill,
+        color: CupertinoDynamicColor.resolve(AppColors.fieldFill, context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.fieldBorder),
+        border: Border.all(
+          color: CupertinoDynamicColor.resolve(AppColors.fieldBorder, context),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -538,8 +581,12 @@ class _PrintStatusCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   job.documentName,
-                  style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: CupertinoDynamicColor.resolve(
+                        AppColors.labelText, context),
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -567,10 +614,7 @@ class _PrintStatusCard extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 job.receivedDatetime,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.secondaryText,
-                ),
+                style: TextStyle(fontSize: 12, color: secondary),
               ),
             ],
           ),
@@ -579,8 +623,7 @@ class _PrintStatusCard extends StatelessWidget {
             job.queueName.isNotEmpty
                 ? '${job.jobSc}  •  ${job.queueName}'
                 : job.jobSc,
-            style: const TextStyle(
-                fontSize: 11, color: AppColors.secondaryText),
+            style: TextStyle(fontSize: 11, color: secondary),
           ),
         ],
       ),
@@ -592,29 +635,38 @@ class _StatusBadge extends StatelessWidget {
   const _StatusBadge({required this.label});
   final String label;
 
-  Color get _color {
-    if (label.contains('エラー')) return CupertinoColors.systemRed;
-    if (label.contains('キャンセル')) return CupertinoColors.systemOrange;
-    if (label.contains('削除')) return AppColors.secondaryText;
+  Color _resolveColor(BuildContext context) {
+    if (label.contains('エラー')) {
+      return CupertinoColors.systemRed.resolveFrom(context);
+    }
+    if (label.contains('キャンセル')) {
+      return CupertinoColors.systemOrange.resolveFrom(context);
+    }
+    if (label.contains('削除')) {
+      return CupertinoDynamicColor.resolve(AppColors.secondaryText, context);
+    }
     if (label.contains('正常') || label.contains('出力完了')) {
-      return CupertinoColors.systemGreen;
+      return CupertinoColors.systemGreen.resolveFrom(context);
     }
-    if (label.contains('出力中')) return CupertinoColors.systemYellow;
+    if (label.contains('出力中')) {
+      return CupertinoColors.systemYellow.resolveFrom(context);
+    }
     if (label.contains('出力待ち') || label.contains('指示待ち')) {
-      return CupertinoColors.systemOrange;
+      return CupertinoColors.systemOrange.resolveFrom(context);
     }
-    return AppColors.primary;
+    return CupertinoDynamicColor.resolve(AppColors.primary, context);
   }
 
   @override
   Widget build(BuildContext context) {
+    final color = _resolveColor(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: _color.withValues(alpha: 0.15),
+        color: color.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(label, style: TextStyle(fontSize: 11, color: _color)),
+      child: Text(label, style: TextStyle(fontSize: 11, color: color)),
     );
   }
 }
@@ -628,10 +680,16 @@ class _Tag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: AppColors.fieldBorder,
+        color: CupertinoDynamicColor.resolve(AppColors.fieldBorder, context),
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(label, style: const TextStyle(fontSize: 12)),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          color: CupertinoDynamicColor.resolve(AppColors.labelText, context),
+        ),
+      ),
     );
   }
 }
@@ -647,16 +705,24 @@ class _FilterSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title,
-            style: const TextStyle(
-                fontSize: 13, color: AppColors.secondaryText)),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 13,
+            color:
+                CupertinoDynamicColor.resolve(AppColors.secondaryText, context),
+          ),
+        ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppColors.fieldFill,
+            color: CupertinoDynamicColor.resolve(AppColors.fieldFill, context),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.fieldBorder),
+            border: Border.all(
+              color: CupertinoDynamicColor.resolve(
+                  AppColors.fieldBorder, context),
+            ),
           ),
           child: child,
         ),
@@ -675,9 +741,14 @@ class _LabeledField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 13, color: AppColors.secondaryText)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            color:
+                CupertinoDynamicColor.resolve(AppColors.secondaryText, context),
+          ),
+        ),
         const SizedBox(height: 4),
         child,
       ],
@@ -705,12 +776,20 @@ class _MonthPickerField extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: Text(label, style: const TextStyle(fontSize: 15)),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: CupertinoDynamicColor.resolve(
+                      AppColors.labelText, context),
+                ),
+              ),
             ),
-            const Icon(
+            Icon(
               CupertinoIcons.chevron_down,
               size: 14,
-              color: AppColors.secondaryText,
+              color:
+                  CupertinoDynamicColor.resolve(AppColors.secondaryText, context),
             ),
           ],
         ),
@@ -744,16 +823,23 @@ class _CheckRow extends StatelessWidget {
                         item.value
                             ? CupertinoIcons.checkmark_square_fill
                             : CupertinoIcons.square,
-                        color: item.value
-                            ? AppColors.primary
-                            : AppColors.secondaryText,
+                        color: CupertinoDynamicColor.resolve(
+                          item.value
+                              ? AppColors.primary
+                              : AppColors.secondaryText,
+                          context,
+                        ),
                         size: 22,
                       ),
                       const SizedBox(width: 6),
                       Flexible(
                         child: Text(
                           item.label,
-                          style: const TextStyle(fontSize: 13),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: CupertinoDynamicColor.resolve(
+                                AppColors.labelText, context),
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
