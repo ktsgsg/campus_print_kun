@@ -74,5 +74,12 @@
   "searchPlaceholder": "検索結果がここに表示されます",
   "noJobsFound": "該当するジョブはありません",
   "resultCount": "{count} 件",
-  "monthYearLabel": "{year}年{month}月"
+  "monthYearLabel": "{year}年{month}月",
+
+  "previewFront": "表",
+  "previewBack": "裏",
+  "previewSheetIndicator": "{current} / {total} 枚",
+  "previewNoPdf": "PDF を選択するとプレビューが表示されます",
+  "previewBindLong": "長辺綴じ",
+  "previewBindShort": "短辺綴じ"
 }

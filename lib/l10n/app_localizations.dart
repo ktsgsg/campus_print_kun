@@ -510,6 +510,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{month}/{year}'**
   String monthYearLabel(int year, int month);
+
+  /// No description provided for @previewFront.
+  ///
+  /// In en, this message translates to:
+  /// **'Front'**
+  String get previewFront;
+
+  /// No description provided for @previewBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get previewBack;
+
+  /// No description provided for @previewSheetIndicator.
+  ///
+  /// In en, this message translates to:
+  /// **'{current} / {total} sheets'**
+  String previewSheetIndicator(int current, int total);
+
+  /// No description provided for @previewNoPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a PDF to see the preview'**
+  String get previewNoPdf;
+
+  /// No description provided for @previewBindLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Long edge'**
+  String get previewBindLong;
+
+  /// No description provided for @previewBindShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Short edge'**
+  String get previewBindShort;
 }
 
 class _AppLocalizationsDelegate

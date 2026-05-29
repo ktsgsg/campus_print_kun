@@ -224,4 +224,24 @@ class AppLocalizationsJa extends AppLocalizations {
   String monthYearLabel(int year, int month) {
     return '$year年$month月';
   }
+
+  @override
+  String get previewFront => '表';
+
+  @override
+  String get previewBack => '裏';
+
+  @override
+  String previewSheetIndicator(int current, int total) {
+    return '$current / $total 枚';
+  }
+
+  @override
+  String get previewNoPdf => 'PDF を選択するとプレビューが表示されます';
+
+  @override
+  String get previewBindLong => '長辺綴じ';
+
+  @override
+  String get previewBindShort => '短辺綴じ';
 }

@@ -5,11 +5,13 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 
 import '../features/auth/credential_store.dart';
+import '../features/pdf/pdf_preview_source.dart';
 import '../features/sharing/shared_pdf_service.dart';
 import '../features/webprint/webprint.dart';
 import '../l10n/app_localizations.dart';
 import 'app_colors.dart';
 import 'job_history_page.dart';
+import 'print_layout_preview.dart';
 import 'print_progress_page.dart';
 import 'print_settings_page.dart';
 
@@ -28,6 +30,8 @@ class _PrintTestPageState extends State<PrintTestPage> {
   bool _running = false;
   PrintFormat _printFormat = PrintFormat();
   StreamSubscription<String>? _sharingSubscription;
+  PdfPreviewSource? _previewSource;
+  bool _previewLoading = false;
 
   @override
   void initState() {
@@ -41,7 +45,36 @@ class _PrintTestPageState extends State<PrintTestPage> {
 
   void _applySharedPdf(String path) {
     if (!mounted) return;
-    setState(() => _selectedFile = File(path));
+    final file = File(path);
+    setState(() => _selectedFile = file);
+    _loadPreview(file);
+  }
+
+  Future<void> _loadPreview(File file) async {
+    final old = _previewSource;
+    setState(() {
+      _previewSource = null;
+      _previewLoading = true;
+    });
+    await old?.close();
+    PdfPreviewSource? source;
+    try {
+      source = await PdfPreviewSource.open(file.path);
+    } catch (_) {
+      source = null;
+    }
+    if (!mounted) {
+      await source?.close();
+      return;
+    }
+    if (_selectedFile?.path != file.path) {
+      await source?.close();
+      return;
+    }
+    setState(() {
+      _previewSource = source;
+      _previewLoading = false;
+    });
   }
 
   Future<void> _loadSavedCredentials() async {
@@ -55,6 +88,7 @@ class _PrintTestPageState extends State<PrintTestPage> {
   @override
   void dispose() {
     _sharingSubscription?.cancel();
+    _previewSource?.close();
     _userController.dispose();
     _passController.dispose();
     super.dispose();
@@ -83,9 +117,9 @@ class _PrintTestPageState extends State<PrintTestPage> {
       withData: false,
     );
     if (result == null || result.files.single.path == null) return;
-    setState(() {
-      _selectedFile = File(result.files.single.path!);
-    });
+    final file = File(result.files.single.path!);
+    setState(() => _selectedFile = file);
+    _loadPreview(file);
   }
 
   String _formatSummary(AppLocalizations l10n, PrintFormat format) {
@@ -256,7 +290,29 @@ class _PrintTestPageState extends State<PrintTestPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              Expanded(
+                child: _previewSource != null
+                    ? PrintLayoutPreview(
+                        key: ValueKey(_selectedFile?.path),
+                        source: _previewSource!,
+                        format: _printFormat,
+                      )
+                    : Center(
+                        child: _previewLoading
+                            ? const CupertinoActivityIndicator()
+                            : Text(
+                                l10n.previewNoPdf,
+                                style: TextStyle(
+                                  color: CupertinoDynamicColor.resolve(
+                                    AppColors.secondaryText,
+                                    context,
+                                  ),
+                                ),
+                              ),
+                      ),
+              ),
+              const SizedBox(height: 12),
               CupertinoButton.filled(
                 onPressed: _running ? null : _startPrint,
                 padding: const EdgeInsets.symmetric(vertical: 14),

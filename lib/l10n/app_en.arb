@@ -101,5 +101,18 @@
       "year": {"type": "int"},
       "month": {"type": "int"}
     }
-  }
+  },
+
+  "previewFront": "Front",
+  "previewBack": "Back",
+  "previewSheetIndicator": "{current} / {total} sheets",
+  "@previewSheetIndicator": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "previewNoPdf": "Select a PDF to see the preview",
+  "previewBindLong": "Long edge",
+  "previewBindShort": "Short edge"
 }
