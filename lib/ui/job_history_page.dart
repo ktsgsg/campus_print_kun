@@ -1,11 +1,10 @@
 import 'package:flutter/cupertino.dart';
 
-import '../data/repositories/job_history_repository.dart';
 import '../domain/models/print_job.dart';
-import '../features/ccmoon/ccmoon.dart';
-import '../features/webprint/webprint_service.dart';
 import '../l10n/app_localizations.dart';
 import 'app_colors.dart';
+import 'features/job_history/view_models/job_histories_view_model.dart';
+import 'features/job_history/view_models/print_status_view_model.dart';
 
 // ─── エントリーポイント ────────────────────────────────────
 class JobHistoryPage extends StatelessWidget {
@@ -64,30 +63,23 @@ class _JobHistoriesPage extends StatefulWidget {
 }
 
 class _JobHistoriesPageState extends State<_JobHistoriesPage> {
-  late DateTime _startDate;
-  late DateTime _endDate;
-
-  bool _normal = true;
-  bool _error = true;
-  bool _cancel = true;
-  bool _deleteBat = true;
-  bool _deleteJob = true;
-
-  bool _loading = false;
-  List<PrintJob>? _results;
-  String? _errorMessage;
+  late final JobHistoriesViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    _startDate = DateTime(now.year, now.month);
-    _endDate = DateTime(now.year, now.month);
+    _viewModel = JobHistoriesViewModel();
+  }
+
+  @override
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
   }
 
   Future<void> _pickMonth(
       {required bool isStart, required AppLocalizations l10n}) async {
-    final initial = isStart ? _startDate : _endDate;
+    final initial = isStart ? _viewModel.startDate : _viewModel.endDate;
     DateTime picked = initial;
     await showCupertinoModalPopup<void>(
       context: context,
@@ -100,21 +92,19 @@ class _JobHistoriesPageState extends State<_JobHistoriesPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 CupertinoButton(
-                  child: Text(l10n.pickerCancel),
                   onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text(l10n.pickerCancel),
                 ),
                 CupertinoButton(
-                  child: Text(l10n.pickerDone),
                   onPressed: () {
-                    setState(() {
-                      if (isStart) {
-                        _startDate = picked;
-                      } else {
-                        _endDate = picked;
-                      }
-                    });
+                    if (isStart) {
+                      _viewModel.setStartDate(picked);
+                    } else {
+                      _viewModel.setEndDate(picked);
+                    }
                     Navigator.of(ctx).pop();
                   },
+                  child: Text(l10n.pickerDone),
                 ),
               ],
             ),
@@ -131,146 +121,124 @@ class _JobHistoriesPageState extends State<_JobHistoriesPage> {
     );
   }
 
-  Future<void> _search() async {
-    setState(() {
-      _loading = true;
-      _errorMessage = null;
-      _results = null;
-    });
-    try {
-      final session = await connectCcmoon(
-        username: widget.user,
-        password: widget.pass,
-      );
-      final wp = WebPrint(session);
-      await wp.initialize(username: widget.user, password: widget.pass);
-
-      final repo = JobHistoryRepository(session);
-      final jobs = await repo.searchHistories(
-        HistorySearchFilter(
-          userId: widget.user,
-          startMonth: _startDate,
-          endMonth: _endDate,
-          normal: _normal,
-          error: _error,
-          cancel: _cancel,
-          deleteBat: _deleteBat,
-          deleteJob: _deleteJob,
-        ),
-      );
-
-      if (mounted) setState(() => _results = jobs);
-    } catch (e) {
-      if (mounted) setState(() => _errorMessage = e.toString());
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final deco = _fieldDecoration(context);
     return CupertinoPageScaffold(
       navigationBar: _navBar(context, l10n.historyTitle),
       child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _FilterSection(
-                title: l10n.filterPeriod,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _LabeledField(
-                        label: l10n.filterStartMonth,
-                        child: _MonthPickerField(
-                          label: l10n.monthYearLabel(
-                              _startDate.year, _startDate.month),
-                          decoration: deco,
-                          onTap: () =>
-                              _pickMonth(isStart: true, l10n: l10n),
+        child: ListenableBuilder(
+          listenable: _viewModel,
+          builder: (context, _) {
+            final deco = _fieldDecoration(context);
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _FilterSection(
+                    title: l10n.filterPeriod,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _LabeledField(
+                            label: l10n.filterStartMonth,
+                            child: _MonthPickerField(
+                              label: l10n.monthYearLabel(
+                                  _viewModel.startDate.year,
+                                  _viewModel.startDate.month),
+                              decoration: deco,
+                              onTap: () =>
+                                  _pickMonth(isStart: true, l10n: l10n),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _LabeledField(
-                        label: l10n.filterEndMonth,
-                        child: _MonthPickerField(
-                          label: l10n.monthYearLabel(
-                              _endDate.year, _endDate.month),
-                          decoration: deco,
-                          onTap: () =>
-                              _pickMonth(isStart: false, l10n: l10n),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _LabeledField(
+                            label: l10n.filterEndMonth,
+                            child: _MonthPickerField(
+                              label: l10n.monthYearLabel(
+                                  _viewModel.endDate.year,
+                                  _viewModel.endDate.month),
+                              decoration: deco,
+                              onTap: () =>
+                                  _pickMonth(isStart: false, l10n: l10n),
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 16),
+                  _FilterSection(
+                    title: l10n.filterStatusType,
+                    child: Column(
+                      children: [
+                        _CheckRow(items: [
+                          _CheckItem(l10n.statusNormal, _viewModel.normal,
+                              _viewModel.setNormal),
+                          _CheckItem(l10n.statusError, _viewModel.error,
+                              _viewModel.setError),
+                          _CheckItem(l10n.statusCancelLabel, _viewModel.cancel,
+                              _viewModel.setCancel),
+                        ]),
+                        const SizedBox(height: 8),
+                        _CheckRow(items: [
+                          _CheckItem(l10n.statusDeleteBat, _viewModel.deleteBat,
+                              _viewModel.setDeleteBat),
+                          _CheckItem(l10n.statusDeleteJob, _viewModel.deleteJob,
+                              _viewModel.setDeleteJob),
+                        ]),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  CupertinoButton.filled(
+                    onPressed: _viewModel.loading
+                        ? null
+                        : () => _viewModel.search(
+                            user: widget.user, pass: widget.pass),
+                    child: _viewModel.loading
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const CupertinoActivityIndicator(
+                                  color: CupertinoColors.white),
+                              const SizedBox(width: 8),
+                              Text(l10n.searchingLabel),
+                            ],
+                          )
+                        : Text(l10n.searchButton),
+                  ),
+                  const SizedBox(height: 24),
+                  _buildResults(l10n),
+                ],
               ),
-              const SizedBox(height: 16),
-              _FilterSection(
-                title: l10n.filterStatusType,
-                child: Column(
-                  children: [
-                    _CheckRow(items: [
-                      _CheckItem(l10n.statusNormal, _normal,
-                          (v) => setState(() => _normal = v)),
-                      _CheckItem(l10n.statusError, _error,
-                          (v) => setState(() => _error = v)),
-                      _CheckItem(l10n.statusCancelLabel, _cancel,
-                          (v) => setState(() => _cancel = v)),
-                    ]),
-                    const SizedBox(height: 8),
-                    _CheckRow(items: [
-                      _CheckItem(l10n.statusDeleteBat, _deleteBat,
-                          (v) => setState(() => _deleteBat = v)),
-                      _CheckItem(l10n.statusDeleteJob, _deleteJob,
-                          (v) => setState(() => _deleteJob = v)),
-                    ]),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              CupertinoButton.filled(
-                onPressed: _loading ? null : _search,
-                child: _loading
-                    ? Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const CupertinoActivityIndicator(
-                              color: CupertinoColors.white),
-                          const SizedBox(width: 8),
-                          Text(l10n.searchingLabel),
-                        ],
-                      )
-                    : Text(l10n.searchButton),
-              ),
-              const SizedBox(height: 24),
-              _buildResults(l10n),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
   }
 
   Widget _buildResults(AppLocalizations l10n) {
-    if (_errorMessage != null) return _ErrorBox(message: _errorMessage!);
-    final jobs = _results;
+    if (_viewModel.errorMessage != null) {
+      return _ErrorBox(message: _viewModel.errorMessage!);
+    }
+    final jobs = _viewModel.results;
     if (jobs == null) return _EmptyPlaceholder(message: l10n.searchPlaceholder);
     if (jobs.isEmpty) return _EmptyPlaceholder(message: l10n.noJobsFound);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(l10n.resultCount(jobs.length),
-            style: TextStyle(
-                fontSize: 13,
-                color: CupertinoDynamicColor.resolve(
-                    AppColors.secondaryText, context))),
+        Text(
+          l10n.resultCount(jobs.length),
+          style: TextStyle(
+              fontSize: 13,
+              color: CupertinoDynamicColor.resolve(
+                  AppColors.secondaryText, context)),
+        ),
         const SizedBox(height: 8),
         ...jobs.map((job) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -300,50 +268,18 @@ class _PrintStatusPage extends StatefulWidget {
 }
 
 class _PrintStatusPageState extends State<_PrintStatusPage> {
-  bool _accepting = true;
-  bool _orderWait = true;
-  bool _outputWait = true;
-  bool _outputting = true;
-  bool _end = true;
-  bool _acceptingWeb = true;
+  late final PrintStatusViewModel _viewModel;
 
-  bool _loading = false;
-  List<PrintStatusJob>? _results;
-  String? _errorMessage;
+  @override
+  void initState() {
+    super.initState();
+    _viewModel = PrintStatusViewModel();
+  }
 
-  Future<void> _search() async {
-    setState(() {
-      _loading = true;
-      _errorMessage = null;
-      _results = null;
-    });
-    try {
-      final session = await connectCcmoon(
-        username: widget.user,
-        password: widget.pass,
-      );
-      final wp = WebPrint(session);
-      await wp.initialize(username: widget.user, password: widget.pass);
-
-      final repo = JobHistoryRepository(session);
-      final jobs = await repo.searchPrints(
-        PrintStatusFilter(
-          userId: widget.user,
-          accepting: _accepting,
-          orderWait: _orderWait,
-          outputWait: _outputWait,
-          outputting: _outputting,
-          end: _end,
-          acceptingWeb: _acceptingWeb,
-        ),
-      );
-
-      if (mounted) setState(() => _results = jobs);
-    } catch (e) {
-      if (mounted) setState(() => _errorMessage = e.toString());
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+  @override
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
   }
 
   @override
@@ -352,53 +288,59 @@ class _PrintStatusPageState extends State<_PrintStatusPage> {
     return CupertinoPageScaffold(
       navigationBar: _navBar(context, l10n.printStatus),
       child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _FilterSection(
-                title: l10n.filterStatusType,
-                child: Column(
-                  children: [
-                    _CheckRow(items: [
-                      _CheckItem(l10n.statusAccepting, _accepting,
-                          (v) => setState(() => _accepting = v)),
-                      _CheckItem(l10n.statusOrderWait, _orderWait,
-                          (v) => setState(() => _orderWait = v)),
-                      _CheckItem(l10n.statusOutputWait, _outputWait,
-                          (v) => setState(() => _outputWait = v)),
-                    ]),
-                    const SizedBox(height: 8),
-                    _CheckRow(items: [
-                      _CheckItem(l10n.statusOutputting, _outputting,
-                          (v) => setState(() => _outputting = v)),
-                      _CheckItem(l10n.statusEndLabel, _end,
-                          (v) => setState(() => _end = v)),
-                      _CheckItem(l10n.statusAcceptingWeb, _acceptingWeb,
-                          (v) => setState(() => _acceptingWeb = v)),
-                    ]),
-                  ],
+        child: ListenableBuilder(
+          listenable: _viewModel,
+          builder: (context, _) => SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _FilterSection(
+                  title: l10n.filterStatusType,
+                  child: Column(
+                    children: [
+                      _CheckRow(items: [
+                        _CheckItem(l10n.statusAccepting, _viewModel.accepting,
+                            _viewModel.setAccepting),
+                        _CheckItem(l10n.statusOrderWait, _viewModel.orderWait,
+                            _viewModel.setOrderWait),
+                        _CheckItem(l10n.statusOutputWait, _viewModel.outputWait,
+                            _viewModel.setOutputWait),
+                      ]),
+                      const SizedBox(height: 8),
+                      _CheckRow(items: [
+                        _CheckItem(l10n.statusOutputting, _viewModel.outputting,
+                            _viewModel.setOutputting),
+                        _CheckItem(l10n.statusEndLabel, _viewModel.end,
+                            _viewModel.setEnd),
+                        _CheckItem(l10n.statusAcceptingWeb,
+                            _viewModel.acceptingWeb, _viewModel.setAcceptingWeb),
+                      ]),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              CupertinoButton.filled(
-                onPressed: _loading ? null : _search,
-                child: _loading
-                    ? Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const CupertinoActivityIndicator(
-                              color: CupertinoColors.white),
-                          const SizedBox(width: 8),
-                          Text(l10n.searchingLabel),
-                        ],
-                      )
-                    : Text(l10n.searchButton),
-              ),
-              const SizedBox(height: 24),
-              _buildResults(l10n),
-            ],
+                const SizedBox(height: 16),
+                CupertinoButton.filled(
+                  onPressed: _viewModel.loading
+                      ? null
+                      : () => _viewModel.search(
+                          user: widget.user, pass: widget.pass),
+                  child: _viewModel.loading
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const CupertinoActivityIndicator(
+                                color: CupertinoColors.white),
+                            const SizedBox(width: 8),
+                            Text(l10n.searchingLabel),
+                          ],
+                        )
+                      : Text(l10n.searchButton),
+                ),
+                const SizedBox(height: 24),
+                _buildResults(l10n),
+              ],
+            ),
           ),
         ),
       ),
@@ -406,18 +348,22 @@ class _PrintStatusPageState extends State<_PrintStatusPage> {
   }
 
   Widget _buildResults(AppLocalizations l10n) {
-    if (_errorMessage != null) return _ErrorBox(message: _errorMessage!);
-    final jobs = _results;
+    if (_viewModel.errorMessage != null) {
+      return _ErrorBox(message: _viewModel.errorMessage!);
+    }
+    final jobs = _viewModel.results;
     if (jobs == null) return _EmptyPlaceholder(message: l10n.searchPlaceholder);
     if (jobs.isEmpty) return _EmptyPlaceholder(message: l10n.noJobsFound);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(l10n.resultCount(jobs.length),
-            style: TextStyle(
-                fontSize: 13,
-                color: CupertinoDynamicColor.resolve(
-                    AppColors.secondaryText, context))),
+        Text(
+          l10n.resultCount(jobs.length),
+          style: TextStyle(
+              fontSize: 13,
+              color: CupertinoDynamicColor.resolve(
+                  AppColors.secondaryText, context)),
+        ),
         const SizedBox(height: 8),
         ...jobs.map((job) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -788,8 +734,8 @@ class _MonthPickerField extends StatelessWidget {
             Icon(
               CupertinoIcons.chevron_down,
               size: 14,
-              color:
-                  CupertinoDynamicColor.resolve(AppColors.secondaryText, context),
+              color: CupertinoDynamicColor.resolve(
+                  AppColors.secondaryText, context),
             ),
           ],
         ),
