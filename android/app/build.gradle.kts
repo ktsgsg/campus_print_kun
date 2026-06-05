@@ -24,7 +24,7 @@ android {
         applicationId = "com.example.campus_print_kun"
         // pdfx は android.graphics.pdf.PdfRenderer (API 21+) を使うため
         // Flutter デフォルト任せにせず明示的に 21 へ固定する。
-        minSdk = 21
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
